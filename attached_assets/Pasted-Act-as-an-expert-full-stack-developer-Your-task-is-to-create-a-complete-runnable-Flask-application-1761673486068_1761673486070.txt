@@ -1,0 +1,46 @@
+Act as an expert full-stack developer. Your task is to create a complete, runnable Flask application for a "Smart SEO AI Agent" dashboard. The top priority is a clean, modern, and professional user interface (UI), not a basic wireframe. The design should be visually appealing and intuitive for digital marketing agencies and content creators.
+
+**I. UI/UX Design Requirements (The Most Important Part):**
+
+1.  **Styling:** Use a single `static/style.css` file. The design must be professional. Use a modern color palette (e.g., shades of blue, dark gray for text, and white/light gray for backgrounds). Use a clean, sans-serif font like 'Inter' or 'Poppins' from Google Fonts.
+2.  **Layout:** The main page should have a clean header with the title "Smart SEO AI Agent." The main content area should be organized into three distinct, tab-like sections that the user can switch between without reloading the page. Use CSS Flexbox or Grid for layout.
+3.  **Components:** All input fields, buttons, and text areas must be styled to look modern. Add subtle hover effects to buttons and tabs to improve user experience.
+4.  **NO WIREFRAMES:** Do not produce a basic, unstyled HTML layout. The final output must look like a finished product.
+
+**II. Application Structure & Features:**
+
+Create the following file structure:
+*   `app.py` (The main Flask application)
+*   `templates/index.html` (The single HTML file for the frontend)
+*   `static/style.css` (The CSS for styling)
+
+**A. Backend (`app.py`):**
+
+1.  **Flask Setup:** Create a Flask application.
+2.  **Main Route:** Create a main route `/` that renders `index.html`.
+3.  **API Routes (for AI logic):** Create three separate API routes:
+    *   `/api/keyword_research`: Accepts a 'topic' and returns a JSON list of mock keyword data.
+    *   `/api/content_outline`: Accepts a 'keyword' and returns a JSON object representing a mock content outline.
+    *   `/api/onpage_seo`: Accepts a 'text' and 'keyword' and returns a JSON object with mock SEO suggestions.
+4.  **Placeholder AI Functions:** For each API route, create a corresponding Python function (e.g., `generate_keywords(topic)`). **Do not use real AI models.** Instead, make these functions return realistic-looking *mock/dummy data* in the exact format the frontend will need. This is crucial for building the UI correctly. For example:
+    *   `generate_keywords` should return `[{'keyword': 'AI in marketing', 'intent': 'Informational', 'difficulty': 65}, ...]`
+    *   `generate_outline` should return `{'h1': 'The Rise of AI', 'h2_headings': ['What is AI?', 'Impact on SEO'], ...}`
+    *   `generate_seo_suggestions` should return `{'suggested_title': 'New Title', 'meta_description': 'New description...', ...}`
+
+**B. Frontend (`templates/index.html` and `static/style.css`):**
+
+1.  **HTML Structure:**
+    *   Set up the basic HTML structure linked to the `style.css` file and include a script tag for JavaScript.
+    *   Create the main layout with a header and a tab container with three tabs: "Keyword Research," "Content Outline," and "On-Page SEO."
+    *   Create three content panels, one for each tab. Only one panel should be visible at a time.
+2.  **Feature Panels:**
+    *   **Keyword Research Panel:** Include a text input for the 'topic' and a "Generate Keywords" button. Add a table to display the results (Keyword, Intent, Difficulty).
+    *   **Content Outline Panel:** Include a text input for the 'keyword' and a "Create Outline" button. Add a `<div>` to display the generated outline in a structured way (using `<h4>` for H1, `<h5>` for H2, etc.).
+    *   **On-Page SEO Panel:** Include a text input for 'keyword' and a `<textarea>` for the 'article text'. Add a "Analyze Text" button. Display the suggestions clearly.
+3.  **JavaScript Logic (inside `<script>` tag in `index.html`):**
+    *   Write JavaScript to handle tab switching (showing/hiding the correct panels).
+    *   For each of the three features, add an event listener to the button.
+    *   On button click, use the `fetch()` API to send the user's input to the correct Flask API route (`/api/...`).
+    *   When the mock data is returned from the backend, write JavaScript to dynamically populate the results table or display `div` with the data. Show a simple "Loading..." message while waiting for the `fetch` call to complete.
+
+Please generate the complete, runnable code for all three files based on these detailed instructions.
