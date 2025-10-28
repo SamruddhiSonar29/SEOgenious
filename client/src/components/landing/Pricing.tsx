@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 const plans = [
   {
     name: "Free",
-    price: "$0",
+    price: "₹0",
     description: "Perfect for getting started",
     features: [
       "5 keyword analyses per month",
@@ -19,7 +19,7 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "$49",
+    price: "₹149",
     description: "For serious content creators",
     features: [
       "Unlimited keyword analyses",
@@ -35,7 +35,7 @@ const plans = [
   },
   {
     name: "Enterprise",
-    price: "$199",
+    price: "₹500",
     description: "For agencies and teams",
     features: [
       "Everything in Pro",
