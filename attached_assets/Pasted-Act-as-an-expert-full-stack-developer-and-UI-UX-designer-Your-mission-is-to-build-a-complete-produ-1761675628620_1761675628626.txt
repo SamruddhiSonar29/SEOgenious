@@ -1,0 +1,65 @@
+Act as an expert full-stack developer and UI/UX designer. Your mission is to build a complete, production-ready, and visually stunning web application for a product called the "Smart SEO Optimization AI Agent."
+
+The final application must be a premium SaaS product with a beautiful marketing landing page and a powerful, interactive user dashboard after login.
+
+**I. Overall Vision & Tech Stack:**
+
+*   **Frontend:** React (Vite) + Tailwind CSS.
+*   **Backend:** Flask (Python).
+*   **UI/UX Inspiration:** Blend the aesthetics of Vercel (for the landing page) and Notion (for the clean dashboard).
+*   **Core Goal:** Create a tool that feels intelligent, futuristic, and incredibly valuable for digital marketing agencies and creators.
+
+**II. UI/UX Design - The "Wow" Factor:**
+
+*   **Theme & Palette:** A bright, elegant gradient theme (electric blue → purple → cyan). Use a light theme for the dashboard for readability, but with gradient accents on buttons and charts.
+*   **Visual Effects:** Implement glassmorphism, soft shadows, animated gradient borders, and smooth transitions. The UI should feel alive.
+*   **Typography:** Use a clean, modern sans-serif font like "Poppins" or "Inter" from Google Fonts.
+*   **Icons:** Use Lucide or Heroicons for a clean, professional look.
+*   **Responsiveness:** The entire application (landing page and dashboard) must be fully responsive for desktop, tablet, and mobile.
+
+**III. Application Flow & Pages (Frontend + Backend):**
+
+**1. Marketing Landing Page (`/`):**
+    *   **Hero Section:**
+        *   Headline: “Boost Your Website Visibility with AI-Powered SEO.”
+        *   Subheadline: “Your personal SEO partner to analyze, optimize, and dominate search rankings.”
+        *   Buttons: "Start for Free" (links to `/register`) and "Watch Demo."
+        *   Background: A subtle, animated abstract AI visualization or floating gradient particles.
+    *   **Features Section:** Use animated cards with glowing icons for "Keyword Analysis," "Content Optimization," and "Competitor Insights."
+    *   **Pricing Section:** Elegant pricing cards for "Free," "Pro," and "Enterprise." Highlight the "Pro" plan with a glowing gradient border.
+    *   **Footer:** Professional footer with links and a subtle gradient background.
+
+**2. Authentication Pages (`/login`, `/register`):**
+    *   Clean, centered forms with gradient buttons and a professional look.
+    *   The backend should handle user creation (with hashed passwords) and login.
+
+**3. The Main Dashboard (`/dashboard` - protected route):**
+    *   **Layout:** A sidebar for navigation (Dashboard, Keywords, Content, Competitors) and a top navbar showing the logged-in user's name and a "Logout" button.
+    *   **Dashboard Overview:**
+        *   Main Card: "SEO Health Score" with an animated progress circle.
+        *   Button: A prominent gradient button "Run New Analysis."
+        *   Summary Widgets: Small cards for "Total Reports," "Avg. SEO Score," and "Keywords Tracked."
+    *   **AI Chatbot:** A floating, glowing circular gradient button at the bottom-right that opens an AI chat pop-up for instant SEO queries.
+
+**IV. Advanced AI Dashboard Features (Backend APIs + Frontend UI):**
+
+For each feature, create a Flask API endpoint (`/api/...`) and a corresponding React component in the dashboard. Use dummy data for now, but structure the code to be easily connected to a real AI model.
+
+*   **Feature 1: AI Keyword Clustering:**
+    *   **UI:** A section where a user can paste a list of keywords.
+    *   **Function:** The AI groups these keywords into thematic clusters. This is a high-value feature that saves hours of manual work.
+    *   **Output:** Display the clusters in clean, expandable sections.
+
+*   **Feature 2: SERP Competitor Analysis:**
+    *   **UI:** An input for a target keyword.
+    *   **Function:** The AI analyzes the top 10 Google results and creates a visual summary: competitor URLs, their word count, and their content "angle" (e.g., "Beginner's Guide," "Listicle").
+    *   **Output:** A beautiful chart or table comparing the user to their competitors, highlighting content gaps.
+
+*   **Feature 3: Interactive Content Optimizer:**
+    *   **UI:** A text editor (like a simple version of Google Docs).
+    *   **Function:** As the user pastes or types content, the AI analyzes it in real-time, providing suggestions for readability, keyword density, and meta tags on the side.
+    *   **Output:** Dynamically highlight text and show suggestions.
+
+**V. Deliverables:**
+
+Generate the complete, runnable code organized into two folders: `client/` (for the React frontend) and `server/` (for the Flask backend). The code must be production-quality, well-commented, and ready to launch.
