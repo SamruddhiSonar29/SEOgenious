@@ -9,7 +9,7 @@ export default function Header() {
             <Search className="h-5 w-5 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-semibold text-foreground">
-            Smart SEO AI Agent
+            SEOgenious
           </h1>
         </div>
       </div>

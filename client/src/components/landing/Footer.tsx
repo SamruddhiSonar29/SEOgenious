@@ -12,7 +12,7 @@ export default function Footer() {
               <div className="flex h-8 w-8 items-center justify-center rounded-md gradient-primary">
                 <Search className="h-4 w-4 text-white" />
               </div>
-              <span className="font-bold">Smart SEO AI</span>
+              <span className="font-bold">SEOgenious</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Your AI-powered partner for dominating search rankings.
@@ -104,7 +104,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
-          <p>© 2025 Smart SEO AI Agent. All rights reserved.</p>
+          <p>© 2025 SEOgenious. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="flex h-8 w-8 items-center justify-center rounded-md gradient-primary">
                 <Search className="h-4 w-4 text-white" />
               </div>
-              <span>Smart SEO AI</span>
+              <span>SEOgenious</span>
             </Link>
             <button 
               className="md:hidden"

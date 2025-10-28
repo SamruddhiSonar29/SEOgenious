@@ -72,7 +72,7 @@ export default function Login() {
             <div className="flex h-10 w-10 items-center justify-center rounded-md gradient-primary">
               <Search className="h-5 w-5 text-white" />
             </div>
-            <span>Smart SEO AI</span>
+            <span>SEOgenious</span>
           </Link>
         </div>
 

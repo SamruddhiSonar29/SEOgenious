@@ -16,7 +16,7 @@ export default function Navbar() {
             <div className="flex h-8 w-8 items-center justify-center rounded-md gradient-primary">
               <Search className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg">Smart SEO AI</span>
+            <span className="text-lg">SEOgenious</span>
           </Link>
 
           {/* Navigation Links */}
