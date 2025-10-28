@@ -12,6 +12,7 @@ import Dashboard from "@/pages/Dashboard";
 import Keywords from "@/pages/Keywords";
 import Content from "@/pages/Content";
 import Competitors from "@/pages/Competitors";
+import Chatbot from "@/pages/Chatbot";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -38,6 +39,11 @@ function Router() {
       <Route path="/dashboard/competitors">
         <ProtectedRoute>
           <Competitors />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/chatbot">
+        <ProtectedRoute>
+          <Chatbot />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

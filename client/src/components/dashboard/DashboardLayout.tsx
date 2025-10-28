@@ -7,6 +7,7 @@ import {
   Search, 
   FileText, 
   TrendingUp, 
+  MessageCircle,
   LogOut,
   Menu,
   X
@@ -26,6 +27,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Keywords', href: '/dashboard/keywords', icon: Search },
     { name: 'Content', href: '/dashboard/content', icon: FileText },
     { name: 'Competitors', href: '/dashboard/competitors', icon: TrendingUp },
+    { name: 'AI Assistant', href: '/dashboard/chatbot', icon: MessageCircle },
   ];
 
   return (

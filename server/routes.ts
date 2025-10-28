@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, insertChatMessageSchema } from "@shared/schema";
+import { openai } from "./openai";
 
 // Mock data generators
 function generateKeywords(topic: string) {
@@ -323,6 +324,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       readability_score: Math.floor(Math.random() * 20) + 75,
       suggestions,
     });
+  });
+
+  // AI Chatbot routes
+  app.get('/api/chat/messages', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const messages = await storage.getChatMessages(userId);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch messages' });
+    }
+  });
+
+  app.post('/api/chat/send', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { message } = req.body;
+
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+
+      // Save user message
+      await storage.createChatMessage({
+        userId,
+        role: 'user',
+        content: message,
+      });
+
+      // Get recent chat history for context
+      const chatHistory = await storage.getChatMessages(userId);
+      const recentMessages = chatHistory.slice(-10).map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }));
+
+      // Call OpenAI API
+      // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5",
+        max_completion_tokens: 8192,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert SEO consultant assistant. Help users with keyword research, content optimization, technical SEO, on-page SEO, link building strategies, and general SEO best practices. Provide actionable, practical advice tailored to their needs.',
+          },
+          ...recentMessages,
+        ],
+      });
+
+      const assistantMessage = completion.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+
+      // Save assistant response
+      const savedMessage = await storage.createChatMessage({
+        userId,
+        role: 'assistant',
+        content: assistantMessage,
+      });
+
+      res.json(savedMessage);
+    } catch (error) {
+      console.error('Chat error:', error);
+      res.status(500).json({ error: 'Failed to send message' });
+    }
   });
 
   const httpServer = createServer(app);
