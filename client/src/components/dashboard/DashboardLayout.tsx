@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
 import { 
   LayoutDashboard, 
   Search, 
   FileText, 
   TrendingUp, 
   MessageCircle,
+  Settings,
   LogOut,
   Menu,
   X
@@ -28,6 +30,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Content', href: '/dashboard/content', icon: FileText },
     { name: 'Competitors', href: '/dashboard/competitors', icon: TrendingUp },
     { name: 'AI Assistant', href: '/dashboard/chatbot', icon: MessageCircle },
+    { name: 'Settings', href: '/dashboard/profile', icon: Settings },
   ];
 
   return (
@@ -124,6 +127,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex-1" />
+          <ThemeToggle />
         </header>
 
         {/* Page content */}

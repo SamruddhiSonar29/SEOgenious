@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import SEOHealthScore from "@/components/dashboard/SEOHealthScore";
-import StatCard from "@/components/dashboard/StatCard";
-import { FileText, TrendingUp, Search as SearchIcon, Play } from "lucide-react";
+import StatsWidget from "@/components/dashboard/StatsWidget";
+import ActivityFeed from "@/components/dashboard/ActivityFeed";
+import { Search as SearchIcon, Play } from "lucide-react";
 
 export default function DashboardHome() {
   return (
@@ -9,10 +10,17 @@ export default function DashboardHome() {
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+            Dashboard Overview
+          </h1>
           <p className="text-muted-foreground">
             Monitor your SEO performance and get actionable insights
           </p>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="mb-8">
+          <StatsWidget />
         </div>
 
         {/* Main content grid */}
@@ -62,49 +70,9 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Stats grid */}
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard
-            title="Total Reports"
-            value="24"
-            icon={FileText}
-            gradient="from-purple-500 to-pink-500"
-          />
-          <StatCard
-            title="Avg. SEO Score"
-            value="82"
-            icon={TrendingUp}
-            gradient="from-blue-500 to-cyan-500"
-          />
-          <StatCard
-            title="Keywords Tracked"
-            value="156"
-            icon={SearchIcon}
-            gradient="from-cyan-500 to-blue-500"
-          />
-        </div>
-
         {/* Recent activity */}
-        <div className="mt-8 rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold">Recent Activity</h2>
-          <div className="space-y-3">
-            {[
-              { action: 'Completed keyword analysis', time: '2 hours ago', status: 'success' },
-              { action: 'Generated content outline', time: '5 hours ago', status: 'success' },
-              { action: 'Analyzed competitor page', time: '1 day ago', status: 'info' },
-            ].map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-4 rounded-lg border bg-background p-4 hover-elevate"
-              >
-                <div className={`h-2 w-2 rounded-full ${item.status === 'success' ? 'bg-green-500' : 'bg-blue-500'}`} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{item.action}</p>
-                  <p className="text-xs text-muted-foreground">{item.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="mt-8">
+          <ActivityFeed />
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
-import { insertUserSchema, insertChatMessageSchema } from "@shared/schema";
+import { insertUserSchema, insertChatMessageSchema, updateUserProfileSchema, insertActivitySchema, insertSavedItemSchema } from "@shared/schema";
 import { openai } from "./openai";
 
 // Mock data generators
@@ -387,6 +387,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Chat error:', error);
       res.status(500).json({ error: 'Failed to send message' });
+    }
+  });
+
+  // User Profile & Settings routes
+  app.patch('/api/user/profile', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const validatedData = updateUserProfileSchema.parse(req.body);
+      
+      // If email is being updated, check if it's already in use
+      if (validatedData.email) {
+        const existingUser = await storage.getUserByEmail(validatedData.email);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ message: 'Email already in use' });
+        }
+      }
+
+      const updatedUser = await storage.updateUserProfile(userId, validatedData);
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ message: 'Invalid update data' });
+    }
+  });
+
+  app.get('/api/user/stats', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const stats = await storage.getUserStats(userId);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+  });
+
+  // Activity routes
+  app.get('/api/activities', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const activities = await storage.getActivities(userId, limit);
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch activities' });
+    }
+  });
+
+  app.post('/api/activities', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const validatedData = insertActivitySchema.parse({
+        ...req.body,
+        userId,
+      });
+      const activity = await storage.createActivity(validatedData);
+      res.json(activity);
+    } catch (error) {
+      res.status(400).json({ error: 'Invalid activity data' });
+    }
+  });
+
+  // Saved Items routes
+  app.get('/api/saved', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const type = req.query.type as string | undefined;
+      const items = await storage.getSavedItems(userId, type);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch saved items' });
+    }
+  });
+
+  app.post('/api/saved', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const validatedData = insertSavedItemSchema.parse({
+        ...req.body,
+        userId,
+      });
+      const item = await storage.createSavedItem(validatedData);
+      res.json(item);
+    } catch (error) {
+      res.status(400).json({ error: 'Invalid saved item data' });
+    }
+  });
+
+  app.delete('/api/saved/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      const deleted = await storage.deleteSavedItem(id, userId);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Item not found or not authorized' });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete item' });
     }
   });
 
