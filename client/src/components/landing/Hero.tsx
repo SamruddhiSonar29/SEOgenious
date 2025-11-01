@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Play, Sparkles } from "lucide-react";
 
 export default function Hero() {
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  
   return (
+    <>
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-blue-50/30 px-8 py-24 lg:py-32">
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden">
@@ -52,9 +57,7 @@ export default function Hero() {
               variant="outline"
               data-testid="button-watch-demo"
               className="group gap-2 text-base"
-              onClick={() => {
-                document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-              }}
+              onClick={() => setShowDemoModal(true)}
             >
               <Play className="h-4 w-4 transition-transform group-hover:scale-110" />
               Watch Demo
@@ -79,5 +82,43 @@ export default function Hero() {
         </div>
       </div>
     </section>
+
+    {/* Demo Video Modal */}
+    <Dialog open={showDemoModal} onOpenChange={setShowDemoModal}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">SEOgenious Demo</DialogTitle>
+        </DialogHeader>
+        <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center">
+          {/* Replace this div with your actual demo video */}
+          {/* Example YouTube embed: */}
+          {/* <iframe 
+            className="w-full h-full rounded-lg"
+            src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+            title="SEOgenious Demo"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          /> */}
+          
+          {/* Placeholder - Replace with your video */}
+          <div className="text-center p-8">
+            <Play className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-lg font-semibold mb-2">Demo Video Coming Soon</p>
+            <p className="text-muted-foreground mb-6">
+              See SEOgenious in action with our comprehensive walkthrough
+            </p>
+            <Link href="/register">
+              <Button 
+                className="gradient-primary animate-gradient"
+                onClick={() => setShowDemoModal(false)}
+              >
+                Try it Now - It's Free
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
