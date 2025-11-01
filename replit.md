@@ -11,6 +11,8 @@ SEOgenious (rebranded from Smart SEO AI) is a professional SaaS dashboard applic
 - AI chatbot assistant for SEO guidance
 - Animated SEO health score widget
 - Activity feed showing recent user actions
+- Save/favorite functionality for keyword clusters and content analyses
+- Dedicated Saved Items page with view and delete capabilities
 
 ## User Preferences
 
@@ -39,7 +41,7 @@ The application implements a utility-focused dashboard design with:
 - Hover and active state elevations using custom Tailwind utilities
 
 **Component Architecture:**
-- Page-level components in `client/src/pages/` (Landing, Login, Register, Dashboard, Keywords, Content, Competitors, Profile)
+- Page-level components in `client/src/pages/` (Landing, Login, Register, Dashboard, Keywords, Content, Competitors, SavedItems, Profile)
 - Reusable UI components in `client/src/components/ui/` (Shadcn UI components with Avatar, Card, Form, etc.)
 - Dashboard components in `client/src/components/dashboard/`:
   - `StatsWidget` - Displays 4 metric cards showing user statistics (keywords, content, competitors, saved items)
@@ -56,9 +58,10 @@ The application implements a utility-focused dashboard design with:
 
 **Routing Strategy:**
 - Public routes: `/` (landing), `/login`, `/register`
-- Protected routes: `/dashboard`, `/dashboard/keywords`, `/dashboard/content`, `/dashboard/competitors`, `/dashboard/profile`
+- Protected routes: `/dashboard`, `/dashboard/keywords`, `/dashboard/content`, `/dashboard/competitors`, `/dashboard/chatbot`, `/dashboard/saved`, `/dashboard/profile`
 - Route protection via ProtectedRoute wrapper component checking authentication status
 - Dashboard uses sidebar navigation for easy access to all tools
+- SavedItems page displays user's saved keyword clusters and content analyses with delete functionality
 
 ### Backend Architecture
 
@@ -76,6 +79,10 @@ RESTful API endpoints for:
   - `/api/user/stats` (GET) - Get user statistics (keywords, content, competitors, saved items)
   - `/api/user/activities` (GET) - Get recent user activities with pagination
 - SEO Features: `/api/keyword_research`, `/api/content_outline`, `/api/onpage_seo`, `/api/keyword_clustering`, `/api/serp_analysis`, `/api/content_optimize`
+- Saved Items: 
+  - `/api/saved` (GET) - Get all saved items for current user
+  - `/api/saved` (POST) - Save a new item (keyword cluster or content analysis)
+  - `/api/saved/:id` (DELETE) - Delete a saved item
 
 **Mock Data Strategy:**
 All AI features currently return realistic mock data to demonstrate functionality. The architecture is designed to easily swap mock implementations with real AI/ML services.

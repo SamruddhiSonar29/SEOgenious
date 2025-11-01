@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, AlertCircle, Info } from "lucide-react";
-import { queryClient } from "@/lib/queryClient";
+import { CheckCircle2, AlertCircle, Info, Bookmark } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Content() {
+  const { toast } = useToast();
   const [content, setContent] = useState("");
   const [targetKeyword, setTargetKeyword] = useState("");
   const [suggestions, setSuggestions] = useState<any>(null);
@@ -33,6 +35,36 @@ export default function Content() {
       queryClient.invalidateQueries({ queryKey: ['/api/user/activities'] });
     } catch (error) {
       console.error('Error analyzing content:', error);
+    }
+  };
+
+  const handleSaveAnalysis = async () => {
+    try {
+      await apiRequest('POST', '/api/saved', {
+        type: 'content_analysis',
+        title: `Content Analysis: ${targetKeyword}`,
+        data: {
+          keyword: targetKeyword,
+          contentPreview: content.substring(0, 200),
+          wordCount: suggestions.word_count,
+          keywordDensity: suggestions.keyword_density,
+          readabilityScore: suggestions.readability_score,
+        },
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/saved'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
+      
+      toast({
+        title: "Saved!",
+        description: "Content analysis has been saved.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save content analysis.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -111,9 +143,21 @@ export default function Content() {
               </div>
 
               {suggestions && (
-                <div className="rounded-xl border bg-card p-6 shadow-sm">
-                  <h2 className="mb-4 text-lg font-semibold">Suggestions</h2>
-                  <ul className="space-y-3">
+                <>
+                  <div className="rounded-xl border bg-card p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold">Suggestions</h2>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSaveAnalysis}
+                        data-testid="button-save-analysis"
+                      >
+                        <Bookmark className="h-4 w-4 mr-2" />
+                        Save
+                      </Button>
+                    </div>
+                    <ul className="space-y-3">
                     {suggestions.suggestions.map((suggestion: any, index: number) => {
                       const Icon = suggestion.type === 'success' ? CheckCircle2 : 
                                   suggestion.type === 'warning' ? AlertCircle : Info;
@@ -121,14 +165,15 @@ export default function Content() {
                                        suggestion.type === 'warning' ? 'text-amber-500' : 'text-blue-500';
                       
                       return (
-                        <li key={index} className="flex items-start gap-3">
+                        <li key={index} className="flex items-start gap-3" data-testid={`suggestion-${index}`}>
                           <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${iconColor}`} />
-                          <span className="text-sm">{suggestion.text}</span>
+                          <span className="text-sm" data-testid={`suggestion-text-${index}`}>{suggestion.text}</span>
                         </li>
                       );
                     })}
                   </ul>
-                </div>
+                  </div>
+                </>
               )}
             </div>
           </div>

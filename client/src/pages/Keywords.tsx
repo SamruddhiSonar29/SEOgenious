@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { queryClient } from "@/lib/queryClient";
+import { ChevronDown, ChevronRight, Bookmark } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface KeywordCluster {
   cluster: string;
@@ -13,6 +14,7 @@ interface KeywordCluster {
 }
 
 export default function Keywords() {
+  const { toast } = useToast();
   const [keywords, setKeywords] = useState("");
   const [loading, setLoading] = useState(false);
   const [clusters, setClusters] = useState<KeywordCluster[]>([]);
@@ -54,6 +56,30 @@ export default function Keywords() {
       newExpanded.add(index);
     }
     setExpandedClusters(newExpanded);
+  };
+
+  const handleSaveCluster = async (cluster: KeywordCluster) => {
+    try {
+      await apiRequest('POST', '/api/saved', {
+        type: 'keyword_cluster',
+        title: cluster.cluster,
+        data: { keywords: cluster.keywords },
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/saved'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
+      
+      toast({
+        title: "Saved!",
+        description: `Keyword cluster "${cluster.cluster}" has been saved.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save keyword cluster.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -110,12 +136,12 @@ export default function Keywords() {
                       key={index}
                       className="rounded-xl border bg-card shadow-sm"
                     >
-                      <button
-                        onClick={() => toggleCluster(index)}
-                        className="flex w-full items-center justify-between p-4 text-left hover-elevate"
-                        data-testid={`cluster-${index}`}
-                      >
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-between p-4">
+                        <button
+                          onClick={() => toggleCluster(index)}
+                          className="flex flex-1 items-center gap-3 text-left hover-elevate"
+                          data-testid={`cluster-${index}`}
+                        >
                           {expandedClusters.has(index) ? (
                             <ChevronDown className="h-5 w-5 text-muted-foreground" />
                           ) : (
@@ -127,8 +153,16 @@ export default function Keywords() {
                               {cluster.keywords.length} keywords
                             </p>
                           </div>
-                        </div>
-                      </button>
+                        </button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleSaveCluster(cluster)}
+                          data-testid={`button-save-cluster-${index}`}
+                        >
+                          <Bookmark className="h-4 w-4" />
+                        </Button>
+                      </div>
                       {expandedClusters.has(index) && (
                         <div className="border-t p-4">
                           <div className="flex flex-wrap gap-2">
@@ -136,6 +170,7 @@ export default function Keywords() {
                               <span
                                 key={keywordIndex}
                                 className="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
+                                data-testid={`keyword-${index}-${keywordIndex}`}
                               >
                                 {keyword}
                               </span>

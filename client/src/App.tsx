@@ -13,6 +13,7 @@ import Keywords from "@/pages/Keywords";
 import Content from "@/pages/Content";
 import Competitors from "@/pages/Competitors";
 import Chatbot from "@/pages/Chatbot";
+import SavedItems from "@/pages/SavedItems";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/not-found";
 
@@ -45,6 +46,11 @@ function Router() {
       <Route path="/dashboard/chatbot">
         <ProtectedRoute>
           <Chatbot />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/saved">
+        <ProtectedRoute>
+          <SavedItems />
         </ProtectedRoute>
       </Route>
       <Route path="/dashboard/profile">
