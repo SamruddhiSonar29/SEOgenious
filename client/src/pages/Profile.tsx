@@ -122,7 +122,7 @@ export default function Profile() {
           <CardContent className="space-y-3">
             <div className="flex justify-between py-2 border-b">
               <span className="text-sm font-medium">Account ID</span>
-              <span className="text-sm text-muted-foreground">{user?.id.substring(0, 8)}...</span>
+              <span className="text-sm text-muted-foreground">{user?.id?.substring(0, 8)}...</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-sm font-medium">Member Since</span>

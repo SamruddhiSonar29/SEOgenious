@@ -95,7 +95,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="border-t p-4">
             <div className="mb-3 flex items-center gap-3 rounded-md bg-muted p-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-                {user?.name.substring(0, 2).toUpperCase() || 'U'}
+                {user?.name?.substring(0, 2).toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>

@@ -1,8 +1,16 @@
-# Smart SEO AI Agent
+# SEOgenious
 
 ## Overview
 
-Smart SEO AI Agent is a professional SaaS dashboard application for digital marketing agencies and content creators. The platform provides AI-powered SEO tools including keyword research, content outline generation, on-page SEO analysis, keyword clustering, and SERP competitor analysis. The application features a modern marketing landing page and a comprehensive dashboard interface with real-time analytics.
+SEOgenious (rebranded from Smart SEO AI) is a professional SaaS dashboard application for digital marketing agencies and content creators. The platform provides AI-powered SEO tools including keyword research, content outline generation, on-page SEO analysis, keyword clustering, and SERP competitor analysis. 
+
+**Key Features:**
+- Modern marketing landing page with testimonials and before/after case studies
+- Comprehensive dashboard with real-time user statistics and activity tracking
+- User profile management with theme preferences (light/dark mode)
+- AI chatbot assistant for SEO guidance
+- Animated SEO health score widget
+- Activity feed showing recent user actions
 
 ## User Preferences
 
@@ -21,23 +29,36 @@ Preferred communication style: Simple, everyday language.
 
 **Design System:**
 The application implements a utility-focused dashboard design with:
-- Custom color palette using CSS variables for theming (primary blues: #2563EB, #3B82F6, #60A5FA)
+- Custom color palette using CSS variables for theming (gradient: electric blue → purple → cyan)
+- **Dark mode support**: Full light/dark theme system with localStorage and database persistence
 - Typography using Inter or Poppins fonts from Google Fonts
 - Gradient effects and glassmorphism for visual appeal
 - Responsive layout system with mobile-first approach
 - Component variants using class-variance-authority (CVA)
+- Proper Avatar components (no emojis) following design guidelines
+- Hover and active state elevations using custom Tailwind utilities
 
 **Component Architecture:**
-- Page-level components in `client/src/pages/` (Landing, Login, Register, Dashboard, Keywords, Content, Competitors)
-- Reusable UI components in `client/src/components/ui/` (Shadcn UI components)
+- Page-level components in `client/src/pages/` (Landing, Login, Register, Dashboard, Keywords, Content, Competitors, Profile)
+- Reusable UI components in `client/src/components/ui/` (Shadcn UI components with Avatar, Card, Form, etc.)
+- Dashboard components in `client/src/components/dashboard/`:
+  - `StatsWidget` - Displays 4 metric cards showing user statistics (keywords, content, competitors, saved items)
+  - `ActivityFeed` - Shows recent user actions with timestamps and icons
+  - `SEOHealthScore` - Animated circular progress showing SEO score (0-100)
+  - `DashboardLayout` - Sidebar navigation with user profile section
+- Landing page components in `client/src/components/landing/`:
+  - `Testimonials` - Customer testimonials with Avatar components
+  - `BeforeAfter` - Case study results showing metrics improvements
+  - `Hero`, `Features`, `Navbar`, `Footer`
 - Feature-specific components (KeywordResearch, ContentOutline, OnPageSEO)
-- Dashboard layout with sidebar navigation
-- Context-based authentication state management
+- `ThemeToggle` - Dark/light mode switcher with persistence
+- Context-based authentication state management via `AuthContext`
 
 **Routing Strategy:**
 - Public routes: `/` (landing), `/login`, `/register`
-- Protected routes: `/dashboard`, `/dashboard/keywords`, `/dashboard/content`, `/dashboard/competitors`
+- Protected routes: `/dashboard`, `/dashboard/keywords`, `/dashboard/content`, `/dashboard/competitors`, `/dashboard/profile`
 - Route protection via ProtectedRoute wrapper component checking authentication status
+- Dashboard uses sidebar navigation for easy access to all tools
 
 ### Backend Architecture
 
@@ -50,6 +71,10 @@ The application implements a utility-focused dashboard design with:
 **API Design:**
 RESTful API endpoints for:
 - Authentication: `/api/auth/login`, `/api/auth/register`, `/api/auth/logout`, `/api/auth/me`
+- User Management: 
+  - `/api/user/profile` (PATCH) - Update user profile (name, email, theme)
+  - `/api/user/stats` (GET) - Get user statistics (keywords, content, competitors, saved items)
+  - `/api/user/activities` (GET) - Get recent user activities with pagination
 - SEO Features: `/api/keyword_research`, `/api/content_outline`, `/api/onpage_seo`, `/api/keyword_clustering`, `/api/serp_analysis`, `/api/content_optimize`
 
 **Mock Data Strategy:**
@@ -64,6 +89,12 @@ All AI features currently return realistic mock data to demonstrate functionalit
 **Storage Pattern:**
 The application uses an interface-based storage pattern (`IStorage`) with a current in-memory implementation (`MemStorage`). This design allows seamless migration to a database without changing business logic.
 
+**Current Storage Methods:**
+- User CRUD: `createUser()`, `getUserById()`, `getUserByEmail()`, `updateUser()`, `deleteUser()`
+- User Stats: `getUserStats()` - Returns aggregated metrics for dashboard
+- Activities: `createActivity()`, `getUserActivities()` - Track and retrieve user actions
+- Saved Items: `createSavedItem()`, `getUserSavedItems()`, `deleteSavedItem()` - Manage favorites
+
 ### Data Storage Solutions
 
 **Current Implementation:**
@@ -72,9 +103,12 @@ The application uses an interface-based storage pattern (`IStorage`) with a curr
 
 **Database Schema (Prepared for Migration):**
 The application includes a Drizzle ORM schema definition for PostgreSQL:
-- Users table with fields: id (UUID), name, email (unique), password (hashed), createdAt
+- **Users table**: id (UUID), name, email (unique), password (hashed), theme ('light'|'dark'), onboardingComplete (boolean), createdAt
+- **User Preferences table**: id, userId, theme, emailNotifications, weeklyReports
+- **Activities table**: id, userId, actionType, actionDetails, metadata (JSONB), createdAt
+- **Saved Items table**: id, userId, itemType, itemId, itemData (JSONB), createdAt
 - Schema uses Drizzle with Neon serverless PostgreSQL driver
-- Zod schemas for validation (insertUserSchema)
+- Zod schemas for validation (insertUserSchema, insertActivitySchema, etc.)
 
 **Migration Strategy:**
 The codebase is structured to support adding PostgreSQL by:
