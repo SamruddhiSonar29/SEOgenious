@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Content() {
   const [content, setContent] = useState("");
@@ -14,14 +15,25 @@ export default function Content() {
   const analyzeContent = async () => {
     if (!content.trim() || !targetKeyword.trim()) return;
 
-    // Simulate real-time analysis
-    const response = await fetch('/api/content_optimize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, keyword: targetKeyword }),
-    });
-    const data = await response.json();
-    setSuggestions(data);
+    try {
+      const response = await fetch('/api/content_optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, keyword: targetKeyword }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to analyze content');
+      }
+      
+      const data = await response.json();
+      setSuggestions(data);
+      
+      // Invalidate activities cache to refresh activity feed
+      queryClient.invalidateQueries({ queryKey: ['/api/user/activities'] });
+    } catch (error) {
+      console.error('Error analyzing content:', error);
+    }
   };
 
   return (

@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 interface KeywordCluster {
   cluster: string;
@@ -27,9 +28,17 @@ export default function Keywords() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keywords: keywords.split('\n').filter(k => k.trim()) }),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to cluster keywords');
+      }
+      
       const data = await response.json();
       setClusters(data);
       setExpandedClusters(new Set([0]));
+      
+      // Invalidate activities cache to refresh activity feed
+      queryClient.invalidateQueries({ queryKey: ['/api/user/activities'] });
     } catch (error) {
       console.error('Error clustering keywords:', error);
     } finally {

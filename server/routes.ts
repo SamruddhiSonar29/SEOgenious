@@ -239,7 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Advanced AI features (all require authentication and CSRF protection)
-  app.post('/api/keyword_clustering', checkCSRF, requireAuth, (req, res) => {
+  app.post('/api/keyword_clustering', checkCSRF, requireAuth, async (req, res) => {
     const { keywords } = req.body;
     if (!keywords || !Array.isArray(keywords)) {
       return res.status(400).json({ error: 'Keywords array is required' });
@@ -261,10 +261,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       },
     ].filter(cluster => cluster.keywords.length > 0);
 
+    // Log activity (non-blocking)
+    if (req.session?.userId) {
+      try {
+        await storage.createActivity({
+          userId: req.session.userId,
+          type: 'keyword_clustering',
+          description: `Clustered ${keywords.length} keywords into ${clusters.length} groups`,
+          metadata: { keywordCount: keywords.length, clusterCount: clusters.length },
+        });
+      } catch (error) {
+        console.error('Failed to log activity:', error);
+      }
+    }
+
     res.json(clusters);
   });
 
-  app.post('/api/serp_analysis', checkCSRF, requireAuth, (req, res) => {
+  app.post('/api/serp_analysis', checkCSRF, requireAuth, async (req, res) => {
     const { keyword } = req.body;
     if (!keyword) {
       return res.status(400).json({ error: 'Keyword is required' });
@@ -279,10 +293,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       domain_authority: Math.floor(Math.random() * 40) + 60,
     }));
 
+    // Log activity (non-blocking)
+    if (req.session?.userId) {
+      try {
+        await storage.createActivity({
+          userId: req.session.userId,
+          type: 'serp_analysis',
+          description: `Analyzed SERP competition for "${keyword}"`,
+          metadata: { keyword, competitorCount: competitors.length },
+        });
+      } catch (error) {
+        console.error('Failed to log activity:', error);
+      }
+    }
+
     res.json(competitors);
   });
 
-  app.post('/api/content_optimize', checkCSRF, requireAuth, (req, res) => {
+  app.post('/api/content_optimize', checkCSRF, requireAuth, async (req, res) => {
     const { content, keyword } = req.body;
     if (!content || !keyword) {
       return res.status(400).json({ error: 'Content and keyword are required' });
@@ -317,6 +345,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         text: 'Break up text with H2 and H3 subheadings',
       },
     ];
+
+    // Log activity (non-blocking)
+    if (req.session?.userId) {
+      try {
+        await storage.createActivity({
+          userId: req.session.userId,
+          type: 'content_optimization',
+          description: `Analyzed content for keyword "${keyword}" (${words.length} words)`,
+          metadata: { keyword, wordCount: words.length, keywordDensity: parseFloat(density) },
+        });
+      } catch (error) {
+        console.error('Failed to log activity:', error);
+      }
+    }
 
     res.json({
       word_count: words.length,

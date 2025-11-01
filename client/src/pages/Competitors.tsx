@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { ExternalLink } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 interface CompetitorData {
   rank: number;
@@ -29,8 +30,16 @@ export default function Competitors() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyword }),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to analyze competitors');
+      }
+      
       const data = await response.json();
       setCompetitors(data);
+      
+      // Invalidate activities cache to refresh activity feed
+      queryClient.invalidateQueries({ queryKey: ['/api/user/activities'] });
     } catch (error) {
       console.error('Error analyzing competitors:', error);
     } finally {
