@@ -52,6 +52,9 @@ export default function Hero() {
               variant="outline"
               data-testid="button-watch-demo"
               className="group gap-2 text-base"
+              onClick={() => {
+                document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+              }}
             >
               <Play className="h-4 w-4 transition-transform group-hover:scale-110" />
               Watch Demo
