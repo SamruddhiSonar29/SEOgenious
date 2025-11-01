@@ -24,9 +24,6 @@ export default function Navbar() {
             <a href="#features" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               Features
             </a>
-            <a href="#pricing" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Pricing
-            </a>
             <Link 
               href="/dashboard" 
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"

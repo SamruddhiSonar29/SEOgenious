@@ -42,11 +42,6 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#pricing" className="text-muted-foreground transition-colors hover:text-foreground">
-                  Pricing
-                </a>
-              </li>
-              <li>
                 <Link 
                   href="/dashboard" 
                   className="text-muted-foreground transition-colors hover:text-foreground"
