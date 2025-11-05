@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { ChevronDown, ChevronRight, Bookmark } from "lucide-react";
+import { ChevronDown, ChevronRight, Bookmark, FileDown, FileText } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { exportKeywordClustersToCSV, exportKeywordClustersToPDF } from "@/lib/exports";
 
 interface KeywordCluster {
   cluster: string;
@@ -128,9 +129,31 @@ export default function Keywords() {
 
               {!loading && clusters.length > 0 && (
                 <div className="space-y-4" data-testid="clusters-result">
-                  <h2 className="text-xl font-semibold">
-                    {clusters.length} Clusters Found
-                  </h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">
+                      {clusters.length} Clusters Found
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => exportKeywordClustersToCSV(clusters)}
+                        data-testid="button-export-csv"
+                      >
+                        <FileDown className="h-4 w-4 mr-2" />
+                        CSV
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => exportKeywordClustersToPDF(clusters)}
+                        data-testid="button-export-pdf"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        PDF
+                      </Button>
+                    </div>
+                  </div>
                   {clusters.map((cluster, index) => (
                     <div
                       key={index}

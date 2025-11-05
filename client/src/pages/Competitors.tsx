@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, FileDown, FileText } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
+import { exportSERPAnalysisToCSV, exportSERPAnalysisToPDF } from "@/lib/exports";
 
 interface CompetitorData {
   rank: number;
@@ -88,6 +89,32 @@ export default function Competitors() {
 
           {!loading && competitors.length > 0 && (
             <div className="space-y-6" data-testid="competitors-result">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">
+                  Top 10 Results for "{keyword}"
+                </h2>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => exportSERPAnalysisToCSV(competitors)}
+                    data-testid="button-export-csv"
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    CSV
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => exportSERPAnalysisToPDF(keyword, competitors)}
+                    data-testid="button-export-pdf"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF
+                  </Button>
+                </div>
+              </div>
+              
               {/* Summary Cards */}
               <div className="grid gap-6 md:grid-cols-3">
                 <div className="rounded-xl border bg-card p-6 shadow-sm">

@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, AlertCircle, Info, Bookmark } from "lucide-react";
+import { CheckCircle2, AlertCircle, Info, Bookmark, FileText } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { exportContentAnalysisToPDF } from "@/lib/exports";
 
 export default function Content() {
   const { toast } = useToast();
@@ -147,15 +148,32 @@ export default function Content() {
                   <div className="rounded-xl border bg-card p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-lg font-semibold">Suggestions</h2>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleSaveAnalysis}
-                        data-testid="button-save-analysis"
-                      >
-                        <Bookmark className="h-4 w-4 mr-2" />
-                        Save
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => exportContentAnalysisToPDF({
+                            keyword: targetKeyword,
+                            word_count: suggestions.word_count,
+                            keyword_density: suggestions.keyword_density,
+                            readability_score: suggestions.readability_score,
+                            suggestions: suggestions.suggestions
+                          })}
+                          data-testid="button-export-pdf"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          PDF
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleSaveAnalysis}
+                          data-testid="button-save-analysis"
+                        >
+                          <Bookmark className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                      </div>
                     </div>
                     <ul className="space-y-3">
                     {suggestions.suggestions.map((suggestion: any, index: number) => {
