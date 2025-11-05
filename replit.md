@@ -13,6 +13,8 @@ SEOgenious (rebranded from Smart SEO AI) is a professional SaaS dashboard applic
 - Activity feed showing recent user actions
 - Save/favorite functionality for keyword clusters and content analyses
 - Dedicated Saved Items page with view and delete capabilities
+- **Export to PDF/CSV** for keyword clusters, content analysis, and competitor reports
+- Free public keyword density checker (no authentication required)
 - **n8n webhook integration** for workflow automation and third-party integrations
 
 ## User Preferences
@@ -235,6 +237,10 @@ All tables use UUIDs as primary keys with automatic generation via `gen_random_u
 
 ### Date and Utility Libraries
 - **date-fns**: Modern date utility library
+
+### Export and Reporting
+- **jsPDF**: PDF document generation for client-side exports
+- **jspdf-autotable**: Table formatting and layout in PDF documents
 
 ### Type Definitions
 - TypeScript definitions for all major dependencies (@types/bcryptjs, @types/node, etc.)
