@@ -4,6 +4,10 @@ import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import { insertUserSchema, insertChatMessageSchema, updateUserProfileSchema, insertActivitySchema, insertSavedItemSchema } from "@shared/schema";
 import { openai } from "./openai";
+import { initN8nWebhooks } from "./n8n-webhooks";
+
+// Initialize n8n webhooks (null if not configured)
+const n8nWebhooks = initN8nWebhooks();
 
 // Mock data generators
 function generateKeywords(topic: string) {
@@ -153,6 +157,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.session.userId = user.id;
       }
 
+      // Send n8n webhook notification (non-blocking)
+      if (n8nWebhooks) {
+        n8nWebhooks.onUserRegistration({
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          timestamp: new Date(),
+        }).catch(err => console.error('n8n webhook error:', err));
+      }
+
       // Return user without password
       const { password, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
@@ -270,6 +284,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: `Clustered ${keywords.length} keywords into ${clusters.length} groups`,
           metadata: { keywordCount: keywords.length, clusterCount: clusters.length },
         });
+
+        // Send n8n webhook notification (non-blocking)
+        if (n8nWebhooks) {
+          const user = await storage.getUser(req.session.userId);
+          if (user) {
+            n8nWebhooks.onKeywordAnalysis({
+              userId: user.id,
+              userEmail: user.email,
+              keywords,
+              clusters,
+              timestamp: new Date(),
+            }).catch(err => console.error('n8n webhook error:', err));
+          }
+        }
       } catch (error) {
         console.error('Failed to log activity:', error);
       }
@@ -355,6 +383,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: `Analyzed content for keyword "${keyword}" (${words.length} words)`,
           metadata: { keyword, wordCount: words.length, keywordDensity: parseFloat(density) },
         });
+
+        // Send n8n webhook notification (non-blocking)
+        if (n8nWebhooks) {
+          const user = await storage.getUser(req.session.userId);
+          if (user) {
+            const results = {
+              wordCount: words.length,
+              keywordDensity: parseFloat(density),
+              readabilityScore: Math.floor(Math.random() * 20) + 75,
+              suggestions,
+            };
+            n8nWebhooks.onContentOptimization({
+              userId: user.id,
+              userEmail: user.email,
+              content,
+              targetKeyword: keyword,
+              results,
+              timestamp: new Date(),
+            }).catch(err => console.error('n8n webhook error:', err));
+          }
+        }
       } catch (error) {
         console.error('Failed to log activity:', error);
       }

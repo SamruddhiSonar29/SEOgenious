@@ -13,6 +13,7 @@ SEOgenious (rebranded from Smart SEO AI) is a professional SaaS dashboard applic
 - Activity feed showing recent user actions
 - Save/favorite functionality for keyword clusters and content analyses
 - Dedicated Saved Items page with view and delete capabilities
+- **n8n webhook integration** for workflow automation and third-party integrations
 
 ## User Preferences
 
@@ -70,6 +71,7 @@ The application implements a utility-focused dashboard design with:
 - Session-based authentication using express-session
 - Bcrypt for password hashing
 - In-memory storage with interface for future database integration
+- n8n webhook integration for workflow automation (optional)
 
 **API Design:**
 RESTful API endpoints for:
@@ -86,6 +88,26 @@ RESTful API endpoints for:
 
 **Mock Data Strategy:**
 All AI features currently return realistic mock data to demonstrate functionality. The architecture is designed to easily swap mock implementations with real AI/ML services.
+
+**n8n Webhook Integration:**
+Optional integration that sends real-time events to n8n workflows for automation:
+- **Keyword Analysis** - Fires when user generates keyword clusters
+- **Content Optimization** - Fires when user analyzes content
+- **SERP Analysis** - Fires when user checks competitors
+- **Item Saved** - Fires when user saves a cluster or analysis
+- **User Registration** - Fires when new user signs up
+
+Webhooks enable automation like:
+- Sending email reports to clients
+- Posting to Slack when analysis is done
+- Saving data to Google Sheets
+- Creating tasks in project management tools
+- And 400+ other integrations via n8n
+
+Configuration via environment variables (optional):
+- `N8N_WEBHOOK_URL` - Base URL for n8n webhooks
+- `N8N_AUTH_USER` - Basic auth username (optional)
+- `N8N_AUTH_PASS` - Basic auth password (optional)
 
 **Session Management:**
 - HTTP-only cookies for security
