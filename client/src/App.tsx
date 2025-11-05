@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import KeywordDensity from "@/pages/KeywordDensity";
 import Dashboard from "@/pages/Dashboard";
 import Keywords from "@/pages/Keywords";
 import Content from "@/pages/Content";
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/tools/keyword-density" component={KeywordDensity} />
       <Route path="/dashboard">
         <ProtectedRoute>
           <Dashboard />

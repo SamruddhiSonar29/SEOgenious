@@ -25,6 +25,13 @@ export default function Navbar() {
               Features
             </a>
             <Link 
+              href="/tools/keyword-density" 
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              data-testid="link-free-tool"
+            >
+              Free Tool
+            </Link>
+            <Link 
               href="/dashboard" 
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
