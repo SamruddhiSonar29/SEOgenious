@@ -330,6 +330,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: `Analyzed SERP competition for "${keyword}"`,
           metadata: { keyword, competitorCount: competitors.length },
         });
+
+        // Send n8n webhook notification (non-blocking)
+        if (n8nWebhooks) {
+          const user = await storage.getUser(req.session.userId);
+          if (user) {
+            n8nWebhooks.onSerpAnalysis({
+              userId: user.id,
+              userEmail: user.email,
+              keyword,
+              competitors,
+              timestamp: new Date(),
+            }).catch(err => console.error('n8n webhook error:', err));
+          }
+        }
       } catch (error) {
         console.error('Failed to log activity:', error);
       }
@@ -563,6 +577,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
       });
       const item = await storage.createSavedItem(validatedData);
+
+      // Send n8n webhook notification (non-blocking)
+      if (n8nWebhooks) {
+        const user = await storage.getUser(userId);
+        if (user) {
+          n8nWebhooks.onItemSaved({
+            userId: user.id,
+            userEmail: user.email,
+            itemType: item.type,
+            itemTitle: item.title,
+            itemData: item.data,
+            timestamp: new Date(),
+          }).catch(err => console.error('n8n webhook error:', err));
+        }
+      }
+
       res.json(item);
     } catch (error) {
       res.status(400).json({ error: 'Invalid saved item data' });
