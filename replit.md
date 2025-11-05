@@ -116,34 +116,47 @@ Configuration via environment variables (optional):
 - Session secret from environment variable (production-ready)
 
 **Storage Pattern:**
-The application uses an interface-based storage pattern (`IStorage`) with a current in-memory implementation (`MemStorage`). This design allows seamless migration to a database without changing business logic.
+The application uses an interface-based storage pattern (`IStorage`) with a PostgreSQL implementation (`DatabaseStorage`). The abstraction allows easy switching between storage backends.
 
-**Current Storage Methods:**
-- User CRUD: `createUser()`, `getUserById()`, `getUserByEmail()`, `updateUser()`, `deleteUser()`
-- User Stats: `getUserStats()` - Returns aggregated metrics for dashboard
-- Activities: `createActivity()`, `getUserActivities()` - Track and retrieve user actions
-- Saved Items: `createSavedItem()`, `getUserSavedItems()`, `deleteSavedItem()` - Manage favorites
+**Database Connection:**
+- Connection managed via `server/db.ts`
+- Uses Neon serverless driver with WebSocket support
+- Drizzle ORM for type-safe queries
+- Environment variables: `DATABASE_URL`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
+
+**Storage Methods (DatabaseStorage):**
+- User CRUD: `createUser()`, `getUser()`, `getUserByEmail()`, `updateUserProfile()`
+- User Stats: `getUserStats()` - Returns aggregated metrics from activities
+- Activities: `createActivity()`, `getActivities()` - Track and retrieve user actions with pagination
+- Saved Items: `createSavedItem()`, `getSavedItems()`, `deleteSavedItem()` - Manage favorites
+- Chat Messages: `createChatMessage()`, `getChatMessages()` - AI chatbot message history
 
 ### Data Storage Solutions
 
 **Current Implementation:**
-- In-memory storage using JavaScript Maps
-- User data stored with unique IDs generated via crypto.randomUUID()
+- **PostgreSQL database** - Production-ready persistent storage
+- Neon serverless PostgreSQL via Drizzle ORM
+- All user data, activities, and saved items stored in database
+- Automatic UUID generation for primary keys
 
-**Database Schema (Prepared for Migration):**
-The application includes a Drizzle ORM schema definition for PostgreSQL:
-- **Users table**: id (UUID), name, email (unique), password (hashed), theme ('light'|'dark'), onboardingComplete (boolean), createdAt
-- **User Preferences table**: id, userId, theme, emailNotifications, weeklyReports
-- **Activities table**: id, userId, actionType, actionDetails, metadata (JSONB), createdAt
-- **Saved Items table**: id, userId, itemType, itemId, itemData (JSONB), createdAt
-- Schema uses Drizzle with Neon serverless PostgreSQL driver
-- Zod schemas for validation (insertUserSchema, insertActivitySchema, etc.)
+**Database Schema (Active - PostgreSQL):**
+The application uses the following Drizzle ORM schema:
+- **users**: id (UUID), name, email (unique), password (hashed), theme ('light'|'dark'), onboardingCompleted (boolean), createdAt
+- **chat_messages**: id (UUID), userId, role, content, createdAt
+- **activities**: id (UUID), userId, type, description, metadata (JSONB), createdAt
+- **saved_items**: id (UUID), userId, type, title, data (JSONB), createdAt
 
-**Migration Strategy:**
-The codebase is structured to support adding PostgreSQL by:
-1. Implementing a new `DbStorage` class that implements `IStorage`
-2. Running `npm run db:push` to sync schema
-3. Updating the storage instance in server initialization
+All tables use UUIDs as primary keys with automatic generation via `gen_random_uuid()`.
+
+**Schema Validation:**
+- Zod schemas for runtime validation (insertUserSchema, insertActivitySchema, insertSavedItemSchema, etc.)
+- TypeScript types generated from Drizzle schema
+- Insert types exclude auto-generated fields (id, createdAt)
+
+**Database Management:**
+- Schema syncing: `npm run db:push` - Automatically syncs schema changes to database
+- No manual migrations needed - Drizzle handles schema changes
+- Development and production databases managed separately
 
 ### Authentication and Authorization
 
