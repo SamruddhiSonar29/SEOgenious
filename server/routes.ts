@@ -12,10 +12,12 @@ import {
   aiExecutiveSummaryRequestSchema,
   aiOutlineRefineRequestSchema,
   aiChatRequestSchema,
+  runAuditRequestSchema,
 } from "@shared/schema";
 import { openai } from "./openai";
 import { initN8nWebhooks } from "./n8n-webhooks";
 import * as aiWrapper from "./services/aiWrapper";
+import { seoAuditor } from "./services/seoAuditor";
 
 // Initialize n8n webhooks (null if not configured)
 const n8nWebhooks = initN8nWebhooks();
@@ -703,6 +705,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete item' });
+    }
+  });
+
+  // SEO Audit routes
+  app.post('/api/seo-audit', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const validatedData = runAuditRequestSchema.parse(req.body);
+      
+      // Create initial audit record with pending status
+      const audit = await storage.createAudit({
+        userId,
+        url: validatedData.url,
+        score: 0,
+        status: 'running',
+        findings: [],
+        recommendations: [],
+        metadata: {},
+      });
+
+      // Run audit asynchronously
+      (async () => {
+        try {
+          const result = await seoAuditor.runAudit(validatedData.url);
+          
+          // For now, we'll create a completed audit record
+          // TODO: Add update method to properly update existing audit
+          const completedAudit = await storage.createAudit({
+            userId,
+            url: validatedData.url,
+            score: result.score,
+            status: 'completed',
+            findings: result.findings,
+            recommendations: result.recommendations,
+            metadata: result.metadata,
+          });
+
+          // Create activity
+          await storage.createActivity({
+            userId,
+            type: 'seo_audit',
+            description: `Ran SEO audit for ${validatedData.url}`,
+            metadata: { auditId: completedAudit.id, score: result.score },
+          });
+        } catch (error) {
+          console.error('SEO audit failed:', error);
+          await storage.updateAuditStatus(audit.id, 'failed');
+        }
+      })();
+
+      res.json({
+        id: audit.id,
+        status: 'running',
+        message: 'SEO audit started. Check back soon for results.',
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Failed to start audit' });
+      }
+    }
+  });
+
+  app.get('/api/seo-audit/:id', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const audit = await storage.getAudit(id, userId);
+      if (!audit) {
+        return res.status(404).json({ error: 'Audit not found or not authorized' });
+      }
+
+      res.json({
+        id: audit.id,
+        url: audit.url,
+        score: audit.score,
+        status: audit.status,
+        findings: audit.findings,
+        recommendations: audit.recommendations,
+        metadata: audit.metadata,
+        createdAt: audit.createdAt.toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch audit' });
+    }
+  });
+
+  app.get('/api/seo-audit/history', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      const audits = await storage.getAudits(userId, limit);
+      
+      res.json({
+        audits: audits.map(audit => ({
+          id: audit.id,
+          url: audit.url,
+          score: audit.score,
+          status: audit.status,
+          findings: audit.findings,
+          recommendations: audit.recommendations,
+          metadata: audit.metadata,
+          createdAt: audit.createdAt.toISOString(),
+        })),
+        total: audits.length,
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch audit history' });
     }
   });
 
