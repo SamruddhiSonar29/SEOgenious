@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, json } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, json, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -85,6 +85,51 @@ export const insertSavedItemSchema = createInsertSchema(savedItems).pick({
 export type InsertSavedItem = z.infer<typeof insertSavedItemSchema>;
 export type SavedItem = typeof savedItems.$inferSelect;
 
+// SEO Audits Table
+export const audits = pgTable("audits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  url: text("url").notNull(),
+  score: integer("score").notNull().default(0),
+  status: text("status").notNull().default("pending"),
+  findings: json("findings").$type<AuditFinding[]>().notNull(),
+  recommendations: json("recommendations").$type<string[]>().notNull(),
+  metadata: json("metadata").$type<AuditMetadata>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAuditSchema = createInsertSchema(audits).pick({
+  userId: true,
+  url: true,
+  score: true,
+  status: true,
+  findings: true,
+  recommendations: true,
+  metadata: true,
+});
+
+export type InsertAudit = z.infer<typeof insertAuditSchema>;
+export type Audit = typeof audits.$inferSelect;
+
+// SEO Audit Types
+export type AuditFinding = {
+  category: string;
+  severity: "critical" | "warning" | "info";
+  message: string;
+  element?: string;
+  suggestion?: string;
+};
+
+export type AuditMetadata = {
+  crawlTimeMs?: number;
+  pageSize?: number;
+  loadTime?: number;
+  resourceCount?: number;
+  totalLinks?: number;
+  internalLinks?: number;
+  externalLinks?: number;
+};
+
 // AI API Request/Response Schemas
 
 export const aiRewriteRequestSchema = z.object({
@@ -146,3 +191,50 @@ export type AIOutlineRefineRequest = z.infer<typeof aiOutlineRefineRequestSchema
 export type AIOutlineRefineResponse = z.infer<typeof aiOutlineRefineResponseSchema>;
 export type AIChatRequest = z.infer<typeof aiChatRequestSchema>;
 export type AIChatResponse = z.infer<typeof aiChatResponseSchema>;
+
+// SEO Audit API Request/Response Schemas
+
+export const runAuditRequestSchema = z.object({
+  url: z.string().url("Must be a valid URL"),
+});
+
+export const runAuditResponseSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  message: z.string(),
+});
+
+export const auditResultResponseSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  score: z.number().int().min(0).max(100),
+  status: z.string(),
+  findings: z.array(z.object({
+    category: z.string(),
+    severity: z.enum(["critical", "warning", "info"]),
+    message: z.string(),
+    element: z.string().optional(),
+    suggestion: z.string().optional(),
+  })),
+  recommendations: z.array(z.string()),
+  metadata: z.object({
+    crawlTimeMs: z.number().optional(),
+    pageSize: z.number().optional(),
+    loadTime: z.number().optional(),
+    resourceCount: z.number().optional(),
+    totalLinks: z.number().optional(),
+    internalLinks: z.number().optional(),
+    externalLinks: z.number().optional(),
+  }).optional(),
+  createdAt: z.string(),
+});
+
+export const auditHistoryResponseSchema = z.object({
+  audits: z.array(auditResultResponseSchema),
+  total: z.number(),
+});
+
+export type RunAuditRequest = z.infer<typeof runAuditRequestSchema>;
+export type RunAuditResponse = z.infer<typeof runAuditResponseSchema>;
+export type AuditResultResponse = z.infer<typeof auditResultResponseSchema>;
+export type AuditHistoryResponse = z.infer<typeof auditHistoryResponseSchema>;

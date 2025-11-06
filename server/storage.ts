@@ -8,10 +8,13 @@ import {
   type InsertActivity,
   type SavedItem,
   type InsertSavedItem,
+  type Audit,
+  type InsertAudit,
   users,
   chatMessages,
   activities,
-  savedItems
+  savedItems,
+  audits
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -35,6 +38,10 @@ export interface IStorage {
     totalCompetitors: number;
     savedItems: number;
   }>;
+  createAudit(audit: InsertAudit): Promise<Audit>;
+  getAudit(id: string, userId: string): Promise<Audit | undefined>;
+  getAudits(userId: string, limit?: number): Promise<Audit[]>;
+  updateAuditStatus(id: string, status: string): Promise<Audit | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -42,12 +49,14 @@ export class MemStorage implements IStorage {
   private chatMessages: Map<string, ChatMessage>;
   private activities: Map<string, Activity>;
   private savedItems: Map<string, SavedItem>;
+  private audits: Map<string, Audit>;
 
   constructor() {
     this.users = new Map();
     this.chatMessages = new Map();
     this.activities = new Map();
     this.savedItems = new Map();
+    this.audits = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -161,6 +170,44 @@ export class MemStorage implements IStorage {
       totalCompetitors: userActivities.filter(a => a.type === 'competitor_analysis').length,
       savedItems: userSavedItems.length,
     };
+  }
+
+  async createAudit(insertAudit: InsertAudit): Promise<Audit> {
+    const id = randomUUID();
+    const audit: Audit = {
+      id,
+      userId: insertAudit.userId,
+      url: insertAudit.url,
+      score: insertAudit.score,
+      status: insertAudit.status,
+      findings: insertAudit.findings,
+      recommendations: insertAudit.recommendations,
+      metadata: insertAudit.metadata ?? null,
+      createdAt: new Date(),
+    };
+    this.audits.set(id, audit);
+    return audit;
+  }
+
+  async getAudit(id: string, userId: string): Promise<Audit | undefined> {
+    const audit = this.audits.get(id);
+    if (!audit || audit.userId !== userId) return undefined;
+    return audit;
+  }
+
+  async getAudits(userId: string, limit: number = 10): Promise<Audit[]> {
+    return Array.from(this.audits.values())
+      .filter((audit) => audit.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+
+  async updateAuditStatus(id: string, status: string): Promise<Audit | undefined> {
+    const audit = this.audits.get(id);
+    if (!audit) return undefined;
+    const updatedAudit = { ...audit, status };
+    this.audits.set(id, updatedAudit);
+    return updatedAudit;
   }
 }
 
@@ -279,6 +326,40 @@ export class DatabaseStorage implements IStorage {
       totalCompetitors: userActivities.filter(a => a.type === 'competitor_analysis' || a.type === 'serp_analysis').length,
       savedItems: userSavedItems.length,
     };
+  }
+
+  async createAudit(insertAudit: InsertAudit): Promise<Audit> {
+    const [audit] = await db
+      .insert(audits)
+      .values(insertAudit)
+      .returning();
+    return audit;
+  }
+
+  async getAudit(id: string, userId: string): Promise<Audit | undefined> {
+    const [audit] = await db
+      .select()
+      .from(audits)
+      .where(and(eq(audits.id, id), eq(audits.userId, userId)));
+    return audit || undefined;
+  }
+
+  async getAudits(userId: string, limit: number = 10): Promise<Audit[]> {
+    return await db
+      .select()
+      .from(audits)
+      .where(eq(audits.userId, userId))
+      .orderBy(desc(audits.createdAt))
+      .limit(limit);
+  }
+
+  async updateAuditStatus(id: string, status: string): Promise<Audit | undefined> {
+    const [audit] = await db
+      .update(audits)
+      .set({ status })
+      .where(eq(audits.id, id))
+      .returning();
+    return audit || undefined;
   }
 }
 
