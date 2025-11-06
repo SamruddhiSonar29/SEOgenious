@@ -769,31 +769,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/seo-audit/:id', requireAuth, async (req, res) => {
-    try {
-      const userId = req.session!.userId!;
-      const { id } = req.params;
-      
-      const audit = await storage.getAudit(id, userId);
-      if (!audit) {
-        return res.status(404).json({ error: 'Audit not found or not authorized' });
-      }
-
-      res.json({
-        id: audit.id,
-        url: audit.url,
-        score: audit.score,
-        status: audit.status,
-        findings: audit.findings,
-        recommendations: audit.recommendations,
-        metadata: audit.metadata,
-        createdAt: audit.createdAt.toISOString(),
-      });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch audit' });
-    }
-  });
-
   app.get('/api/seo-audit/history', requireAuth, async (req, res) => {
     try {
       const userId = req.session!.userId!;
@@ -816,6 +791,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch audit history' });
+    }
+  });
+
+  app.get('/api/seo-audit/:id', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const audit = await storage.getAudit(id, userId);
+      if (!audit) {
+        return res.status(404).json({ error: 'Audit not found or not authorized' });
+      }
+
+      res.json({
+        id: audit.id,
+        url: audit.url,
+        score: audit.score,
+        status: audit.status,
+        findings: audit.findings,
+        recommendations: audit.recommendations,
+        metadata: audit.metadata,
+        createdAt: audit.createdAt.toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch audit' });
     }
   });
 

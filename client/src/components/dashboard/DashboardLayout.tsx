@@ -13,7 +13,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  Activity
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -31,6 +32,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Content', href: '/dashboard/content', icon: FileText },
     { name: 'Competitors', href: '/dashboard/competitors', icon: TrendingUp },
     { name: 'AI Assistant', href: '/dashboard/chatbot', icon: MessageCircle },
+    { name: 'SEO Audit', href: '/dashboard/seo-audit', icon: Activity },
     { name: 'Saved', href: '/dashboard/saved', icon: Bookmark },
     { name: 'Settings', href: '/dashboard/profile', icon: Settings },
   ];
