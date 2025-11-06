@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, AlertCircle, Info, Bookmark, FileText } from "lucide-react";
+import { CheckCircle2, AlertCircle, Info, Bookmark, FileText, Wand2 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { exportContentAnalysisToPDF } from "@/lib/exports";
@@ -14,6 +14,7 @@ export default function Content() {
   const [content, setContent] = useState("");
   const [targetKeyword, setTargetKeyword] = useState("");
   const [suggestions, setSuggestions] = useState<any>(null);
+  const [isRewriting, setIsRewriting] = useState(false);
 
   const analyzeContent = async () => {
     if (!content.trim() || !targetKeyword.trim()) return;
@@ -69,6 +70,40 @@ export default function Content() {
     }
   };
 
+  const handleAIRewrite = async () => {
+    if (!content.trim()) return;
+    
+    setIsRewriting(true);
+    try {
+      const data = await apiRequest('POST', '/api/ai/rewrite', {
+        content,
+        targetKeyword: targetKeyword || undefined,
+        tone: 'professional',
+      }) as any;
+      
+      setContent(data.rewrittenContent);
+      
+      toast({
+        title: "Content Rewritten!",
+        description: data.mode === 'mock' 
+          ? "Content improved (using mock AI)"
+          : "Content enhanced with AI",
+      });
+      
+      if (data.suggestions?.length > 0) {
+        console.log("AI Suggestions:", data.suggestions);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to rewrite content. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-8">
@@ -107,14 +142,34 @@ export default function Content() {
                 />
               </div>
 
-              <Button
-                data-testid="button-analyze"
-                onClick={analyzeContent}
-                disabled={!content.trim() || !targetKeyword.trim()}
-                className="gradient-primary animate-gradient"
-              >
-                Analyze Content
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  data-testid="button-analyze"
+                  onClick={analyzeContent}
+                  disabled={!content.trim() || !targetKeyword.trim()}
+                  className="gradient-primary animate-gradient"
+                >
+                  Analyze Content
+                </Button>
+                <Button
+                  data-testid="button-ai-rewrite"
+                  onClick={handleAIRewrite}
+                  disabled={!content.trim() || isRewriting}
+                  variant="outline"
+                >
+                  {isRewriting ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                      Rewriting...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      AI Rewrite
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* Suggestions Sidebar */}

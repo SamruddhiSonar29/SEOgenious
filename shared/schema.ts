@@ -84,3 +84,65 @@ export const insertSavedItemSchema = createInsertSchema(savedItems).pick({
 
 export type InsertSavedItem = z.infer<typeof insertSavedItemSchema>;
 export type SavedItem = typeof savedItems.$inferSelect;
+
+// AI API Request/Response Schemas
+
+export const aiRewriteRequestSchema = z.object({
+  content: z.string().min(1),
+  targetKeyword: z.string().optional(),
+  tone: z.enum(["professional", "casual", "technical"]).optional(),
+});
+
+export const aiRewriteResponseSchema = z.object({
+  rewrittenContent: z.string(),
+  suggestions: z.array(z.string()),
+  mode: z.string(),
+});
+
+export const aiExecutiveSummaryRequestSchema = z.object({
+  reportText: z.string().min(1),
+  maxLength: z.number().optional(),
+});
+
+export const aiExecutiveSummaryResponseSchema = z.object({
+  summary: z.string(),
+  keyPoints: z.array(z.string()),
+  actionItems: z.array(z.string()),
+  mode: z.string(),
+});
+
+export const aiOutlineRefineRequestSchema = z.object({
+  outlineSeed: z.string().min(1),
+  targetKeyword: z.string().min(1),
+  targetAudience: z.string().optional(),
+});
+
+export const aiOutlineRefineResponseSchema = z.object({
+  refinedOutline: z.array(z.object({
+    heading: z.string(),
+    subheadings: z.array(z.string()),
+    keyPoints: z.array(z.string()),
+  })),
+  estimatedWordCount: z.number(),
+  mode: z.string(),
+});
+
+export const aiChatRequestSchema = z.object({
+  message: z.string().min(1),
+  sessionContext: z.string().optional(),
+});
+
+export const aiChatResponseSchema = z.object({
+  response: z.string(),
+  suggestions: z.array(z.string()),
+  mode: z.string(),
+});
+
+export type AIRewriteRequest = z.infer<typeof aiRewriteRequestSchema>;
+export type AIRewriteResponse = z.infer<typeof aiRewriteResponseSchema>;
+export type AIExecutiveSummaryRequest = z.infer<typeof aiExecutiveSummaryRequestSchema>;
+export type AIExecutiveSummaryResponse = z.infer<typeof aiExecutiveSummaryResponseSchema>;
+export type AIOutlineRefineRequest = z.infer<typeof aiOutlineRefineRequestSchema>;
+export type AIOutlineRefineResponse = z.infer<typeof aiOutlineRefineResponseSchema>;
+export type AIChatRequest = z.infer<typeof aiChatRequestSchema>;
+export type AIChatResponse = z.infer<typeof aiChatResponseSchema>;

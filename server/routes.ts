@@ -2,9 +2,20 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
-import { insertUserSchema, insertChatMessageSchema, updateUserProfileSchema, insertActivitySchema, insertSavedItemSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  insertChatMessageSchema, 
+  updateUserProfileSchema, 
+  insertActivitySchema, 
+  insertSavedItemSchema,
+  aiRewriteRequestSchema,
+  aiExecutiveSummaryRequestSchema,
+  aiOutlineRefineRequestSchema,
+  aiChatRequestSchema,
+} from "@shared/schema";
 import { openai } from "./openai";
 import { initN8nWebhooks } from "./n8n-webhooks";
+import * as aiWrapper from "./services/aiWrapper";
 
 // Initialize n8n webhooks (null if not configured)
 const n8nWebhooks = initN8nWebhooks();
@@ -465,21 +476,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: msg.content,
       }));
 
-      // Call OpenAI API
-      // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      const completion = await openai.chat.completions.create({
-        model: "gpt-5",
-        max_completion_tokens: 8192,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert SEO consultant assistant. Help users with keyword research, content optimization, technical SEO, on-page SEO, link building strategies, and general SEO best practices. Provide actionable, practical advice tailored to their needs.',
-          },
-          ...recentMessages,
-        ],
+      // Call AI wrapper (respects ENABLE_REAL_AI feature flag)
+      const aiResponse = await aiWrapper.chatbotResponse({
+        userMessage: message,
+        previousMessages: recentMessages,
       });
 
-      const assistantMessage = completion.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+      const assistantMessage = aiResponse.response;
 
       // Save assistant response
       const savedMessage = await storage.createChatMessage({
@@ -493,6 +496,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Chat error:', error);
       res.status(500).json({ error: 'Failed to send message' });
     }
+  });
+
+  // AI Integration routes
+  
+  // AI Content Rewrite
+  app.post('/api/ai/rewrite', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const validatedData = aiRewriteRequestSchema.parse(req.body);
+      const result = await aiWrapper.contentRewrite(validatedData);
+      const status = aiWrapper.getAIStatus();
+      
+      res.json({
+        ...result,
+        mode: status.mode,
+      });
+    } catch (error) {
+      console.error('AI Rewrite error:', error);
+      res.status(500).json({ error: 'Failed to rewrite content' });
+    }
+  });
+
+  // AI Executive Summary
+  app.post('/api/ai/executive-summary', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const validatedData = aiExecutiveSummaryRequestSchema.parse(req.body);
+      const result = await aiWrapper.executiveSummary(validatedData);
+      const status = aiWrapper.getAIStatus();
+      
+      res.json({
+        ...result,
+        mode: status.mode,
+      });
+    } catch (error) {
+      console.error('AI Executive Summary error:', error);
+      res.status(500).json({ error: 'Failed to generate executive summary' });
+    }
+  });
+
+  // AI Outline Refine
+  app.post('/api/ai/outline-refine', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const validatedData = aiOutlineRefineRequestSchema.parse(req.body);
+      const result = await aiWrapper.contentOutlineRefine(validatedData);
+      const status = aiWrapper.getAIStatus();
+      
+      res.json({
+        ...result,
+        mode: status.mode,
+      });
+    } catch (error) {
+      console.error('AI Outline Refine error:', error);
+      res.status(500).json({ error: 'Failed to refine outline' });
+    }
+  });
+
+  // AI Chat Response (feature-flagged)
+  app.post('/api/ai/chat', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const validatedData = aiChatRequestSchema.parse(req.body);
+      
+      // Get recent chat history for context
+      const allMessages = await storage.getChatMessages(userId);
+      const recentMessages = allMessages.slice(-10); // Last 10 messages
+      
+      const result = await aiWrapper.chatbotResponse({
+        userMessage: validatedData.message,
+        sessionContext: validatedData.sessionContext,
+        previousMessages: recentMessages.map(msg => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        })),
+      });
+      
+      const status = aiWrapper.getAIStatus();
+      
+      res.json({
+        ...result,
+        mode: status.mode,
+      });
+    } catch (error) {
+      console.error('AI Chat error:', error);
+      res.status(500).json({ error: 'Failed to generate chat response' });
+    }
+  });
+
+  // AI Status endpoint
+  app.get('/api/ai/status', requireAuth, (req, res) => {
+    const status = aiWrapper.getAIStatus();
+    res.json(status);
   });
 
   // User Profile & Settings routes
