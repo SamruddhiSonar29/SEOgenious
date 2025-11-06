@@ -1,0 +1,145 @@
+You are an expert full-stack developer and project engineer. The repository contains a working AI-SEO product with the following implemented features (use this as the immutable baseline):
+
+- Authentication (bcrypt, session cookies, protected routes)
+- PostgreSQL with users, activities, bookmarks, chat history (persistent)
+- SEO tools: Keyword Research (clustering), Content Outline Generator (mock AI), On-Page Analyzer, Keyword Clustering, SERP Competitor Analysis (top 10)
+- Dashboard UI with real-time stats, activity feed, SEO health score widget, bookmarks, dark mode
+- Export functions (PDF/CSV) for clusters, content analysis, competitor reports
+- Free public tool: Keyword Density Checker
+- AI Chatbot assistant (currently pre-programmed responses)
+- n8n webhook integration (optional); all SEO features currently return realistic mock data and no external API keys are required.
+
+GOAL
+Implement **only the remaining production features** listed below. Do NOT modify or rework completed features except to add nonbreaking integrations. All work must be backwards compatible and runnable on Replit/local with minimal developer changes.
+
+DEFAULTS & ASSUMPTIONS (do not ask these)
+- Assume the existing backend is **complete and stable**. Add new backend routes/services in the same repo.
+- Prefer **FastAPI (async)** for new services/routes. Use the repo convention if different.
+- Enable real AI integration by default but provide a robust mock fallback when `OPENAI_API_KEY` is missing.
+- Do not enable external third-party integrations unless the corresponding env var exists. Use mock/safe modes otherwise.
+- Chatbot real responses are **feature-flagged**: `ENABLE_REAL_AI=false` by default. Only enable real AI if `ENABLE_REAL_AI=true` AND `OPENAI_API_KEY` present.
+- New DB objects must use PostgreSQL with Alembic/SQLAlchemy migrations. Prefer new tables to avoid mutating existing schemas.
+- All secrets must be read from env vars only.
+
+FEATURES TO IMPLEMENT (fixed priority; implement these and **only these**)
+1. **OpenAI integration wrapper**
+   - Add `services/ai_wrapper.py` (async). Provide prompt templates for:
+     - content_rewrite(prompt_context)
+     - executive_summary(report_text)
+     - content_outline_refine(outline_seed)
+     - chatbot_response(user_message, session_context)
+   - Respect env var `OPENAI_API_KEY`. Implement:
+     - exponential backoff & retry (configurable max retries)
+     - per-endpoint rate limiting and concurrency control
+     - request/response logging (sanitized)
+     - local mock fallback mode when key missing (`AI_MODE=mock|real`, default `mock`)
+   - Add unit tests that mock OpenAI responses and assert prompt formatting, retry behaviour, and fallback mode.
+   - Add feature flag env var `ENABLE_REAL_AI` (default `false`) to gate chat responses.
+
+2. **Automated SEO Health Audit (crawler + auditor)**
+   - New route group `/audit`:
+     - `POST /audit/start` -> body `{ "url": string, "maxDepth": int?, "options": {...} }` -> returns `{ "audit_id": uuid }`
+     - `GET /audit/{id}/report` -> returns stored report (JSON + summary)
+   - Crawler checks:
+     - missing/duplicate titles, missing meta descriptions, missing alt attributes, broken links (4xx/5xx), hreflang/canonical issues, basic performance hints (Lighthouse optional).
+   - Store results in `seo_audits` and `seo_audit_issues` tables; provide prioritized "fix first" list sorted by severity and traffic impact estimate.
+   - Implement sanitized HTML parsing (no raw HTML injection into DB), crawl politeness (robots.txt respect) and concurrency limits.
+
+3. **Rank Tracking Dashboard**
+   - Scheduled daily job to check saved keywords:
+     - Use `SERP_API_KEY` provider if present; otherwise fallback to a lightweight scraper with caching and rate limits.
+   - New table `keyword_rank_history(keyword_id, date, position, serp_snapshot_url)`.
+   - Routes:
+     - `GET /rank/{keyword}/history?page=1&limit=50`
+     - `GET /rank/{keyword}/latest`
+   - Add simple alert rules (configurable threshold `RANK_DROP_THRESHOLD` env var) to notify when a keyword drops > X positions.
+
+4. **Backlink Analysis**
+   - Endpoints:
+     - `POST /backlinks/import` (CSV upload)
+     - `GET /backlinks?site=...&page=1&limit=50`
+     - `GET /backlinks/{id}`
+   - New tables: `backlinks`, `referring_domains`. Background job crawls referring pages to capture anchor text, rel (follow/nofollow), HTTP status, and computes a simple domain authority estimate (based on referring domain count + linking root domain quality heuristic).
+   - Implement a toxicity heuristic (suspicious anchors, many low-quality domains, high spam ratio) and flag suspicious links.
+
+5. **Trend & Topic Discovery**
+   - Adapter service that uses Google Trends wrapper if available, otherwise uses news/reddit heuristics (scraping or public endpoints).
+   - Endpoint: `GET /trends?s=query&region=...&from=YYYY-MM-DD&to=YYYY-MM-DD`
+   - Returns topic suggestions with confidence scores and suggested seed keywords.
+
+6. **Content Planner / Editorial Calendar**
+   - Endpoints:
+     - `GET /planner`
+     - `POST /planner/generate` -> uses AI wrapper to create prioritized monthly calendar from keyword opportunities and returns `{ calendar_id }`
+     - CRUD: `POST /planner/item`, `PUT /planner/item/:id`, `DELETE /planner/item/:id`
+   - Store planner items in DB; support export and push to n8n webhook if `N8N_WEBHOOK_URL` is set.
+
+7. **One-click AI PDF Report Generator**
+   - Extend export logic to include AI executive summary + prioritized action list using AI wrapper.
+   - Route: `POST /reports/generate` -> body `{ type: "audit"|"weekly"|"custom", ids: [...], options: {...} }` -> returns downloadable PDF URL or stream.
+   - Support scheduled reports via n8n webhook.
+
+8. **SEO Score System**
+   - Compute unified page score (0–100) combining on-page, performance hints, backlinks, and content gap metrics.
+   - New table `page_scores(page_id, score, calculated_at, components_json)`
+   - Routes:
+     - `GET /seo-score/page/{pageId}`
+     - `GET /seo-score/page/{pageId}/history`
+
+CONSTRAINTS, SECURITY & SAFETY
+- Sanitize and escape any crawled HTML; never store or render raw unsanitized HTML.
+- Respect `robots.txt` and implement rate limiting / politeness in crawlers.
+- Implement input validation and pagination for all list endpoints.
+- Secrets only via env vars. Do not hardcode keys.
+- Log fallback modes clearly when external keys are missing.
+- Adhere to GDPR/privacy: do not exfiltrate personal data in logs or reports.
+
+IMPLEMENTATION DELIVERABLES (for each feature)
+- Exact file paths & filenames to add/modify (backend, services, tests).
+- Alembic migration files (with exact filenames) for new tables.
+- Backend route definitions + OpenAPI schemas + example request/response JSON.
+- Core implementation files with clear comments and included prompt templates for AI.
+- Unit tests and integration/smoke test for the audit flow (using test DB).
+- Minimal React components (isolated) for each feature with import instructions and example props.
+- n8n workflow JSON templates: `n8n/scheduled_rank_checks.json`, `n8n/audit_run_workflow.json`, `n8n/weekly_report_email.json` (use `N8N_WEBHOOK_URL` placeholder).
+- README updates: new env vars, how to enable real APIs, migrations, run commands for Replit, tests, and Postman collection.
+- CI-friendly tests (pytest) and a lint/format step (black/flake8).
+
+BEHAVIOR BEFORE CODING (strict)
+1. **Do NOT change code yet.** First produce a single, complete **PR plan** that lists:
+   - Files to add/modify (exact paths)
+   - DB migration filenames (Alembic style, e.g., `versions/<timestamp>_create_seo_audits.py`)
+   - New env vars (exact names + defaults)
+   - Routes to add (path, method, request/response schema)
+   - Minimal frontend files to add (path + component name + props)
+   - n8n workflow filenames
+   - Tests to add (unit/integration/smoke)
+   - Rollback plan for each migration (SQL or Alembic downgrade)
+   - Acceptance criteria for each feature (what "done" looks like)
+2. Present the PR plan and wait for explicit user approval.
+3. After approval: implement **top priority item only** (OpenAI wrapper):
+   - Provide exact files, backend endpoint example (`POST /ai/rewrite`), a minimal React UI patch to call it, unit tests, and README snippet showing how to set `OPENAI_API_KEY` and `ENABLE_REAL_AI`.
+4. After user reviews the top-priority PR, continue with the next features in priority order (repeat PR plan step for remaining features if requested).
+
+ADDITIONAL DELIVERY STANDARDS
+- All new code must be type-annotated (Python typing).
+- Use Alembic for migrations; include descriptive migration messages.
+- Add example `.env.example` with required env var names (no real keys).
+- Add logging (structured JSON logs) for critical flows (audit runs, AI calls, imports).
+- Provide simple metrics hooks (e.g., increment counters) for success/failure of scheduled jobs.
+- Keep functions small, documented, and testable.
+- Provide feature flags for heavy operations (e.g., `ENABLE_AUDIT_CRAWLER`, `ENABLE_BACKLINK_CRON`) and sane defaults (`false`).
+
+ACCEPTANCE CRITERIA (per feature — minimal)
+- OpenAI wrapper: unit tests pass in both real & mock modes; prompt templates produce expected output shapes.
+- Audit flow: can schedule an audit, run (mock mode), persist results, retrieve report via API, and generate PDF export (mocked).
+- Rank tracker: stores history rows for a keyword, `GET /rank/{keyword}/latest` returns last stored position.
+- Backlink importer: accepts CSV, creates backlink rows, background job populates anchor text and flags toxic links.
+- Trends: returns topic suggestions with confidence for sample queries.
+- Planner: `POST /planner/generate` returns a calendar with at least 5 items when given 10 keywords.
+- Reports: `POST /reports/generate` returns a PDF (or mock PDF link) with AI summary.
+- SEO Score: returns numeric score and history entries.
+
+ERROR HANDLING
+- Return appropriate HTTP status codes and JSON error messages.
+- If external API keys missing, return 200 with `mode: mock` and a warning in the response body or logs.
