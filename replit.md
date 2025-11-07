@@ -61,6 +61,44 @@ The SEO Health Audit feature provides comprehensive technical SEO analysis with 
 - Save to favorites and export to PDF functionality
 - Activity feed integration for audit completions
 
+### Feature 3: Rank Tracking Dashboard (COMPLETED)
+
+The Rank Tracking Dashboard enables users to monitor keyword rankings over time with historical trend visualization.
+
+**Core Service (`server/services/rankTracker.ts`):**
+- **Simulated Rank Checking**: 70% chance of ranking 1-50, 20% chance of 51-100, 10% chance of not ranking
+- **Snapshot Management**: Automatic initial snapshot creation when keywords are added
+- **Trend Calculation**: Computes rank changes and trends over time
+- **Manual Rank Checks**: Users can trigger on-demand rank updates
+
+**Database Schema:**
+- `keywords` table: Stores tracked keywords with target URL, search engine (default: google), location, device (desktop/mobile), user association
+- `rank_snapshots` table: Historical rank positions with timestamp, page number, ranking URL
+- Both tables use UUID primary keys with automatic generation
+
+**API Endpoints:**
+- `POST /api/rank-tracking/keywords` - Add new keyword to track (creates initial snapshot)
+- `GET /api/rank-tracking/keywords` - Get all keywords for authenticated user
+- `DELETE /api/rank-tracking/keywords/:id` - Delete keyword and all snapshots
+- `POST /api/rank-tracking/keywords/:id/check` - Manually trigger rank check (creates new snapshot)
+- `GET /api/rank-tracking/keywords/:id/history` - Get rank history with trend data
+
+**Frontend UI (`/dashboard/rank-tracking`):**
+- Add keyword form with fields: keyword, target URL, location, device (Desktop/Mobile)
+- Keyword cards showing: keyword name, target URL, current rank, last checked time
+- Manual "Check Rank" button on each card for on-demand updates
+- Delete functionality with trash icon button
+- Line chart visualization using recharts with reversed Y-axis (rank 1 at top, 100 at bottom)
+- Chart displays historical rank positions over time
+- Activity feed integration for rank tracking events
+- Real-time updates using TanStack Query with proper cache invalidation
+
+**Key Implementation Details:**
+- Critical fix: `createInitialSnapshot` receives userId parameter to correctly fetch keyword and create initial snapshot
+- Express route ordering: Specific routes (`/history`) defined before parameterized routes (`/:id`) to prevent shadowing
+- TanStack Query: Conditional queryKey prevents requests when no keyword is selected
+- Data persistence: PostgreSQL via Drizzle ORM with type-safe schema validation using Zod
+
 ## External Dependencies
 
 ### UI Component Libraries
