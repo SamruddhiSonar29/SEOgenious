@@ -16,6 +16,7 @@ import Competitors from "@/pages/Competitors";
 import Chatbot from "@/pages/Chatbot";
 import RankTracking from "@/pages/RankTracking";
 import Backlinks from "@/pages/Backlinks";
+import Trends from "@/pages/Trends";
 import SavedItems from "@/pages/SavedItems";
 import Profile from "@/pages/Profile";
 import SeoAudit from "@/pages/SeoAudit";
@@ -66,6 +67,11 @@ function Router() {
       <Route path="/dashboard/backlinks">
         <ProtectedRoute>
           <Backlinks />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/trends">
+        <ProtectedRoute>
+          <Trends />
         </ProtectedRoute>
       </Route>
       <Route path="/dashboard/saved">

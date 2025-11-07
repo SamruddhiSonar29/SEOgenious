@@ -20,6 +20,10 @@ import {
   type InsertBacklinkProfile,
   type BacklinkSnapshot,
   type InsertBacklinkSnapshot,
+  type TrendSearch,
+  type InsertTrendSearch,
+  type TrendSnapshot,
+  type InsertTrendSnapshot,
   users,
   chatMessages,
   activities,
@@ -28,7 +32,9 @@ import {
   keywords,
   rankSnapshots,
   backlinkProfiles,
-  backlinkSnapshots
+  backlinkSnapshots,
+  trendSearches,
+  trendSnapshots
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -86,6 +92,18 @@ export interface IStorage {
     isToxic?: boolean;
     lastSeenAt?: Date;
   }): Promise<BacklinkSnapshot | undefined>;
+  createTrendSearch(search: InsertTrendSearch): Promise<TrendSearch>;
+  getTrendSearch(id: string, userId: string): Promise<TrendSearch | undefined>;
+  getTrendSearches(userId: string): Promise<TrendSearch[]>;
+  updateTrendSearch(id: string, updates: {
+    currentVolume?: number;
+    trend?: string;
+    competitionLevel?: string;
+    lastCheckedAt?: Date;
+  }): Promise<TrendSearch | undefined>;
+  deleteTrendSearch(id: string, userId: string): Promise<boolean>;
+  createTrendSnapshot(snapshot: InsertTrendSnapshot): Promise<TrendSnapshot>;
+  getTrendSnapshots(searchId: string, limit?: number): Promise<TrendSnapshot[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -697,6 +715,69 @@ export class DatabaseStorage implements IStorage {
       .where(eq(backlinkSnapshots.id, id))
       .returning();
     return snapshot || undefined;
+  }
+
+  async createTrendSearch(insertSearch: InsertTrendSearch): Promise<TrendSearch> {
+    const [search] = await db
+      .insert(trendSearches)
+      .values(insertSearch)
+      .returning();
+    return search;
+  }
+
+  async getTrendSearch(id: string, userId: string): Promise<TrendSearch | undefined> {
+    const [search] = await db
+      .select()
+      .from(trendSearches)
+      .where(and(eq(trendSearches.id, id), eq(trendSearches.userId, userId)));
+    return search || undefined;
+  }
+
+  async getTrendSearches(userId: string): Promise<TrendSearch[]> {
+    return await db
+      .select()
+      .from(trendSearches)
+      .where(eq(trendSearches.userId, userId))
+      .orderBy(desc(trendSearches.createdAt));
+  }
+
+  async updateTrendSearch(id: string, updates: {
+    currentVolume?: number;
+    trend?: string;
+    competitionLevel?: string;
+    lastCheckedAt?: Date;
+  }): Promise<TrendSearch | undefined> {
+    const [search] = await db
+      .update(trendSearches)
+      .set(updates)
+      .where(eq(trendSearches.id, id))
+      .returning();
+    return search || undefined;
+  }
+
+  async deleteTrendSearch(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(trendSearches)
+      .where(and(eq(trendSearches.id, id), eq(trendSearches.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async createTrendSnapshot(insertSnapshot: InsertTrendSnapshot): Promise<TrendSnapshot> {
+    const [snapshot] = await db
+      .insert(trendSnapshots)
+      .values(insertSnapshot)
+      .returning();
+    return snapshot;
+  }
+
+  async getTrendSnapshots(searchId: string, limit: number = 30): Promise<TrendSnapshot[]> {
+    return await db
+      .select()
+      .from(trendSnapshots)
+      .where(eq(trendSnapshots.searchId, searchId))
+      .orderBy(desc(trendSnapshots.date))
+      .limit(limit);
   }
 }
 

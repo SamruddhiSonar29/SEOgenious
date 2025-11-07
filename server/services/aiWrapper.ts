@@ -464,6 +464,64 @@ Return as JSON: { "assessment": string, "recommendations": string[] }
 }
 
 /**
+ * Generate topic suggestions for a keyword
+ */
+export async function topicSuggestions(params: {
+  keyword: string;
+  industry?: string;
+}): Promise<string> {
+  const { keyword, industry } = params;
+
+  if (!ENABLE_REAL_AI) {
+    return JSON.stringify([
+      { topic: `Best ${keyword}`, relevance: 90, searchVolume: 8000, difficulty: "medium" },
+      { topic: `How to ${keyword}`, relevance: 85, searchVolume: 12000, difficulty: "easy" },
+      { topic: `Top 10 ${keyword}`, relevance: 80, searchVolume: 6000, difficulty: "medium" },
+      { topic: `Ultimate guide to ${keyword}`, relevance: 75, searchVolume: 5000, difficulty: "hard" },
+      { topic: `Free ${keyword}`, relevance: 70, searchVolume: 9000, difficulty: "easy" },
+      { topic: `Tips for ${keyword}`, relevance: 65, searchVolume: 4000, difficulty: "easy" },
+      { topic: `Advanced ${keyword}`, relevance: 60, searchVolume: 3000, difficulty: "hard" },
+      { topic: `Beginner's guide to ${keyword}`, relevance: 55, searchVolume: 7000, difficulty: "medium" },
+    ]);
+  }
+
+  try {
+    const context = industry ? ` in the ${industry} industry` : "";
+    const systemPrompt = `You are an SEO and content strategy expert. Generate highly relevant topic suggestions based on keywords.`;
+    const userPrompt = `Generate 8 related topic suggestions for the keyword "${keyword}"${context}. 
+      
+For each topic, provide:
+- A specific, actionable topic related to the keyword
+- Relevance score (0-100) indicating how closely related it is
+- Estimated monthly search volume
+- SEO difficulty (easy/medium/hard)
+
+Return ONLY a valid JSON array in this exact format:
+[
+  {"topic": "topic name", "relevance": 85, "searchVolume": 5000, "difficulty": "medium"},
+  ...
+]`;
+
+    const response = await callAI(systemPrompt, userPrompt, {
+      temperature: 0.8,
+      maxTokens: 1000,
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Topic suggestions AI error:", error);
+    
+    // Fallback to mock response
+    return JSON.stringify([
+      { topic: `Best ${keyword}`, relevance: 90, searchVolume: 8000, difficulty: "medium" },
+      { topic: `How to ${keyword}`, relevance: 85, searchVolume: 12000, difficulty: "easy" },
+      { topic: `Top 10 ${keyword}`, relevance: 80, searchVolume: 6000, difficulty: "medium" },
+      { topic: `Ultimate guide to ${keyword}`, relevance: 75, searchVolume: 5000, difficulty: "hard" },
+    ]);
+  }
+}
+
+/**
  * Get AI service status
  */
 export function getAIStatus(): {

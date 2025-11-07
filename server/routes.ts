@@ -23,7 +23,8 @@ import { seoAuditor } from "./services/seoAuditor";
 import { rankTrackerService } from "./services/rankTracker";
 import { pdfGeneratorService } from "./services/pdfGenerator";
 import { backlinkAnalyzerService } from "./services/backlinkAnalyzer";
-import { analyzeBacklinksRequestSchema } from "@shared/schema";
+import { trendDiscoveryService } from "./services/trendDiscovery";
+import { analyzeBacklinksRequestSchema, searchTrendsRequestSchema } from "@shared/schema";
 
 // Initialize n8n webhooks (null if not configured)
 const n8nWebhooks = initN8nWebhooks();
@@ -1054,6 +1055,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete backlink profile' });
+    }
+  });
+
+  app.post('/api/trends/search', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const validatedData = searchTrendsRequestSchema.parse(req.body);
+      
+      const result = await trendDiscoveryService.analyzeTrend(
+        userId,
+        validatedData.keyword,
+        validatedData.industry,
+        validatedData.location
+      );
+      
+      await storage.createActivity({
+        userId,
+        type: 'trend_search',
+        description: `Analyzed trend for "${validatedData.keyword}"`,
+        metadata: { 
+          keyword: validatedData.keyword,
+          industry: validatedData.industry,
+          trend: result.trend,
+        },
+      });
+      
+      n8nWebhooks?.trigger('trend_search', {
+        userId,
+        keyword: validatedData.keyword,
+        currentVolume: result.currentVolume,
+        trend: result.trend,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('Trend search error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+      }
+      res.status(500).json({ error: 'Failed to analyze trend' });
+    }
+  });
+
+  app.get('/api/trends', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const searches = await storage.getTrendSearches(userId);
+      res.json(searches);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch trend searches' });
+    }
+  });
+
+  app.get('/api/trends/:id', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const trendData = await trendDiscoveryService.getTrendHistory(id, userId);
+      if (!trendData) {
+        return res.status(404).json({ error: 'Trend search not found or not authorized' });
+      }
+
+      res.json(trendData);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch trend data' });
+    }
+  });
+
+  app.post('/api/trends/refresh/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const result = await trendDiscoveryService.refreshTrend(id, userId);
+      if (!result) {
+        return res.status(404).json({ error: 'Trend search not found or not authorized' });
+      }
+
+      await storage.createActivity({
+        userId,
+        type: 'trend_refresh',
+        description: `Refreshed trend data for "${result.keyword}"`,
+        metadata: { 
+          searchId: id,
+          newVolume: result.currentVolume,
+          trend: result.trend,
+        },
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error('Trend refresh error:', error);
+      res.status(500).json({ error: 'Failed to refresh trend data' });
+    }
+  });
+
+  app.delete('/api/trends/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const deleted = await storage.deleteTrendSearch(id, userId);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Trend search not found or not authorized' });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete trend search' });
+    }
+  });
+
+  app.post('/api/trends/suggestions', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const { keyword, industry } = req.body;
+      
+      if (!keyword || typeof keyword !== 'string') {
+        return res.status(400).json({ error: 'Keyword is required' });
+      }
+
+      const suggestions = await trendDiscoveryService.getTopicSuggestions(
+        keyword,
+        industry
+      );
+
+      res.json({ suggestions });
+    } catch (error) {
+      console.error('Topic suggestions error:', error);
+      res.status(500).json({ error: 'Failed to generate topic suggestions' });
     }
   });
 

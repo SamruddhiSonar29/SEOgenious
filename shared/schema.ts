@@ -402,3 +402,76 @@ export const backlinkProfileWithDataSchema = z.object({
 export type AnalyzeBacklinksRequest = z.infer<typeof analyzeBacklinksRequestSchema>;
 export type BacklinkData = z.infer<typeof backlinkDataSchema>;
 export type BacklinkProfileWithData = z.infer<typeof backlinkProfileWithDataSchema>;
+
+// Trend Discovery Tables
+export const trendSearches = pgTable("trend_searches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  keyword: text("keyword").notNull(),
+  industry: text("industry"),
+  location: text("location").default("global"),
+  currentVolume: integer("current_volume").notNull().default(0),
+  trend: text("trend").notNull().default("stable"),
+  competitionLevel: text("competition_level").notNull().default("medium"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastCheckedAt: timestamp("last_checked_at"),
+});
+
+export const insertTrendSearchSchema = createInsertSchema(trendSearches).omit({
+  id: true,
+  createdAt: true,
+  lastCheckedAt: true,
+});
+
+export type InsertTrendSearch = z.infer<typeof insertTrendSearchSchema>;
+export type TrendSearch = typeof trendSearches.$inferSelect;
+
+export const trendSnapshots = pgTable("trend_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  searchId: varchar("search_id").notNull(),
+  searchVolume: integer("search_volume").notNull(),
+  date: timestamp("date").notNull(),
+});
+
+export const insertTrendSnapshotSchema = createInsertSchema(trendSnapshots).omit({
+  id: true,
+});
+
+export type InsertTrendSnapshot = z.infer<typeof insertTrendSnapshotSchema>;
+export type TrendSnapshot = typeof trendSnapshots.$inferSelect;
+
+// Trend Discovery API Schemas
+export const searchTrendsRequestSchema = z.object({
+  keyword: z.string().min(1, "Keyword is required"),
+  industry: z.string().optional(),
+  location: z.string().default("global"),
+});
+
+export const trendDataSchema = z.object({
+  id: z.string(),
+  keyword: z.string(),
+  industry: z.string().nullable(),
+  location: z.string(),
+  currentVolume: z.number(),
+  trend: z.string(),
+  competitionLevel: z.string(),
+  createdAt: z.string(),
+  lastCheckedAt: z.string().nullable(),
+  history: z.array(z.object({
+    date: z.string(),
+    volume: z.number(),
+  })),
+});
+
+export const topicSuggestionsResponseSchema = z.object({
+  suggestions: z.array(z.object({
+    topic: z.string(),
+    relevance: z.number(),
+    searchVolume: z.number(),
+    difficulty: z.string(),
+  })),
+});
+
+export type SearchTrendsRequest = z.infer<typeof searchTrendsRequestSchema>;
+export type TrendData = z.infer<typeof trendDataSchema>;
+export type TopicSuggestionsResponse = z.infer<typeof topicSuggestionsResponseSchema>;
