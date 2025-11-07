@@ -26,6 +26,7 @@ import { backlinkAnalyzerService } from "./services/backlinkAnalyzer";
 import { trendDiscoveryService } from "./services/trendDiscovery";
 import { contentPlannerService } from "./services/contentPlanner";
 import { seoScoreCalculator } from "./services/seoScoreCalculator";
+import * as keywordResearchService from "./services/keywordResearch";
 import { 
   analyzeBacklinksRequestSchema, 
   searchTrendsRequestSchema,
@@ -253,13 +254,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SEO AI routes (all require authentication and CSRF protection)
-  app.post('/api/keyword_research', checkCSRF, requireAuth, (req, res) => {
-    const { topic } = req.body;
-    if (!topic) {
-      return res.status(400).json({ error: 'Topic is required' });
+  app.post('/api/keyword-research', checkCSRF, requireAuth, async (req, res) => {
+    const { seedKeyword, count } = req.body;
+    if (!seedKeyword) {
+      return res.status(400).json({ error: 'Seed keyword is required' });
     }
-    const keywords = generateKeywords(topic);
-    res.json(keywords);
+
+    try {
+      const result = await keywordResearchService.generateKeywordIdeas(
+        seedKeyword,
+        count || 50
+      );
+
+      // Log activity (non-blocking)
+      if (req.session?.userId) {
+        try {
+          await storage.createActivity({
+            userId: req.session.userId,
+            type: 'keyword_research',
+            description: `Generated ${result.keywords.length} keyword ideas for "${seedKeyword}"`,
+            metadata: { seedKeyword, keywordCount: result.keywords.length },
+          });
+
+          // Send n8n webhook notification (non-blocking)
+          if (n8nWebhooks) {
+            const user = await storage.getUser(req.session.userId);
+            if (user) {
+              n8nWebhooks.onKeywordAnalysis({
+                userId: user.id,
+                userEmail: user.email,
+                keywords: result.keywords.map(k => k.keyword),
+                clusters: [],
+                timestamp: new Date(),
+              }).catch(err => console.error('n8n webhook error:', err));
+            }
+          }
+        } catch (error) {
+          console.error('Failed to log activity:', error);
+        }
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error('Keyword research error:', error);
+      res.status(500).json({ error: 'Failed to generate keyword ideas' });
+    }
   });
 
   app.post('/api/content_outline', checkCSRF, requireAuth, (req, res) => {

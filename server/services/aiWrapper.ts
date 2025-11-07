@@ -41,7 +41,7 @@ function isRateLimitError(error: any): boolean {
 }
 
 // Generic AI call with retry and rate limiting
-async function callAI(
+export async function callAI(
   systemPrompt: string,
   userPrompt: string,
   options: {
