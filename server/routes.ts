@@ -13,11 +13,14 @@ import {
   aiOutlineRefineRequestSchema,
   aiChatRequestSchema,
   runAuditRequestSchema,
+  addKeywordRequestSchema,
+  trackRankRequestSchema,
 } from "@shared/schema";
 import { openai } from "./openai";
 import { initN8nWebhooks } from "./n8n-webhooks";
 import * as aiWrapper from "./services/aiWrapper";
 import { seoAuditor } from "./services/seoAuditor";
+import { rankTrackerService } from "./services/rankTracker";
 
 // Initialize n8n webhooks (null if not configured)
 const n8nWebhooks = initN8nWebhooks();
@@ -816,6 +819,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch audit' });
+    }
+  });
+
+  // Rank Tracking routes
+  app.post('/api/rank-tracking/keywords', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const validatedData = addKeywordRequestSchema.parse(req.body);
+      
+      const keyword = await storage.createKeyword({
+        userId,
+        keyword: validatedData.keyword,
+        targetUrl: validatedData.targetUrl,
+        searchEngine: validatedData.searchEngine ?? 'google',
+        location: validatedData.location,
+        device: validatedData.device ?? 'desktop',
+      });
+
+      await rankTrackerService.createInitialSnapshot(keyword.id, userId);
+
+      await storage.createActivity({
+        userId,
+        type: 'rank_tracking',
+        description: `Started tracking "${validatedData.keyword}"`,
+        metadata: { keywordId: keyword.id },
+      });
+
+      res.json(keyword);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Failed to add keyword' });
+      }
+    }
+  });
+
+  app.get('/api/rank-tracking/keywords', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const keywordsWithTrends = await rankTrackerService.getAllKeywordsWithTrends(userId);
+      
+      res.json({
+        keywords: keywordsWithTrends.map(kw => ({
+          id: kw.id,
+          keyword: kw.keyword,
+          targetUrl: kw.targetUrl,
+          searchEngine: kw.searchEngine,
+          location: kw.location,
+          device: kw.device,
+          createdAt: kw.createdAt.toISOString(),
+          currentRank: kw.currentRank,
+          previousRank: kw.previousRank,
+          rankChange: kw.rankChange,
+          snapshots: kw.snapshots.map(s => ({
+            rank: s.rank,
+            createdAt: s.createdAt.toISOString(),
+          })),
+        })),
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch keywords' });
+    }
+  });
+
+  app.get('/api/rank-tracking/keywords/:id', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const keywordWithTrend = await rankTrackerService.getKeywordWithTrend(id, userId);
+      if (!keywordWithTrend) {
+        return res.status(404).json({ error: 'Keyword not found or not authorized' });
+      }
+
+      res.json({
+        id: keywordWithTrend.id,
+        keyword: keywordWithTrend.keyword,
+        targetUrl: keywordWithTrend.targetUrl,
+        searchEngine: keywordWithTrend.searchEngine,
+        location: keywordWithTrend.location,
+        device: keywordWithTrend.device,
+        createdAt: keywordWithTrend.createdAt.toISOString(),
+        currentRank: keywordWithTrend.currentRank,
+        previousRank: keywordWithTrend.previousRank,
+        rankChange: keywordWithTrend.rankChange,
+        snapshots: keywordWithTrend.snapshots.map(s => ({
+          rank: s.rank,
+          createdAt: s.createdAt.toISOString(),
+        })),
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch keyword' });
+    }
+  });
+
+  app.post('/api/rank-tracking/check/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const result = await rankTrackerService.checkRank(id, userId);
+      if (!result) {
+        return res.status(404).json({ error: 'Keyword not found or not authorized' });
+      }
+
+      await storage.createActivity({
+        userId,
+        type: 'rank_check',
+        description: `Checked rank for "${result.keyword}"${result.currentRank ? ` - Position ${result.currentRank}` : ' - Not ranking'}`,
+        metadata: { 
+          keywordId: id, 
+          rank: result.currentRank,
+          change: result.rankChange,
+        },
+      });
+
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to check rank' });
+    }
+  });
+
+  app.delete('/api/rank-tracking/keywords/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const deleted = await storage.deleteKeyword(id, userId);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Keyword not found or not authorized' });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete keyword' });
     }
   });
 

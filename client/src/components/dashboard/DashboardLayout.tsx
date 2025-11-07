@@ -14,7 +14,8 @@ import {
   LogOut,
   Menu,
   X,
-  Activity
+  Activity,
+  BarChart3
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -31,6 +32,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Keywords', href: '/dashboard/keywords', icon: Search },
     { name: 'Content', href: '/dashboard/content', icon: FileText },
     { name: 'Competitors', href: '/dashboard/competitors', icon: TrendingUp },
+    { name: 'Rank Tracking', href: '/dashboard/rank-tracking', icon: BarChart3 },
     { name: 'AI Assistant', href: '/dashboard/chatbot', icon: MessageCircle },
     { name: 'SEO Audit', href: '/dashboard/seo-audit', icon: Activity },
     { name: 'Saved', href: '/dashboard/saved', icon: Bookmark },

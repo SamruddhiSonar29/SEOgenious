@@ -238,3 +238,80 @@ export type RunAuditRequest = z.infer<typeof runAuditRequestSchema>;
 export type RunAuditResponse = z.infer<typeof runAuditResponseSchema>;
 export type AuditResultResponse = z.infer<typeof auditResultResponseSchema>;
 export type AuditHistoryResponse = z.infer<typeof auditHistoryResponseSchema>;
+
+// Rank Tracking Tables
+export const keywords = pgTable("keywords", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  keyword: text("keyword").notNull(),
+  targetUrl: text("target_url").notNull(),
+  searchEngine: text("search_engine").notNull().default("google"),
+  location: text("location"),
+  device: text("device").notNull().default("desktop"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertKeywordSchema = createInsertSchema(keywords).pick({
+  userId: true,
+  keyword: true,
+  targetUrl: true,
+  searchEngine: true,
+  location: true,
+  device: true,
+});
+
+export type InsertKeyword = z.infer<typeof insertKeywordSchema>;
+export type Keyword = typeof keywords.$inferSelect;
+
+export const rankSnapshots = pgTable("rank_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  keywordId: varchar("keyword_id").notNull(),
+  rank: integer("rank"),
+  page: integer("page"),
+  url: text("url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRankSnapshotSchema = createInsertSchema(rankSnapshots).pick({
+  keywordId: true,
+  rank: true,
+  page: true,
+  url: true,
+});
+
+export type InsertRankSnapshot = z.infer<typeof insertRankSnapshotSchema>;
+export type RankSnapshot = typeof rankSnapshots.$inferSelect;
+
+// Rank Tracking API Schemas
+export const addKeywordRequestSchema = z.object({
+  keyword: z.string().min(1, "Keyword is required"),
+  targetUrl: z.string().url("Must be a valid URL"),
+  searchEngine: z.enum(["google", "bing", "yahoo"]).default("google"),
+  location: z.string().optional(),
+  device: z.enum(["desktop", "mobile"]).default("desktop"),
+});
+
+export const trackRankRequestSchema = z.object({
+  keywordId: z.string(),
+});
+
+export const keywordWithRankDataSchema = z.object({
+  id: z.string(),
+  keyword: z.string(),
+  targetUrl: z.string(),
+  searchEngine: z.string(),
+  location: z.string().nullable(),
+  device: z.string(),
+  createdAt: z.string(),
+  currentRank: z.number().nullable(),
+  previousRank: z.number().nullable(),
+  rankChange: z.number().nullable(),
+  snapshots: z.array(z.object({
+    rank: z.number().nullable(),
+    createdAt: z.string(),
+  })),
+});
+
+export type AddKeywordRequest = z.infer<typeof addKeywordRequestSchema>;
+export type TrackRankRequest = z.infer<typeof trackRankRequestSchema>;
+export type KeywordWithRankData = z.infer<typeof keywordWithRankDataSchema>;

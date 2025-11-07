@@ -10,11 +10,17 @@ import {
   type InsertSavedItem,
   type Audit,
   type InsertAudit,
+  type Keyword,
+  type InsertKeyword,
+  type RankSnapshot,
+  type InsertRankSnapshot,
   users,
   chatMessages,
   activities,
   savedItems,
-  audits
+  audits,
+  keywords,
+  rankSnapshots
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -42,6 +48,12 @@ export interface IStorage {
   getAudit(id: string, userId: string): Promise<Audit | undefined>;
   getAudits(userId: string, limit?: number): Promise<Audit[]>;
   updateAuditStatus(id: string, status: string): Promise<Audit | undefined>;
+  createKeyword(keyword: InsertKeyword): Promise<Keyword>;
+  getKeyword(id: string, userId: string): Promise<Keyword | undefined>;
+  getKeywords(userId: string): Promise<Keyword[]>;
+  deleteKeyword(id: string, userId: string): Promise<boolean>;
+  createRankSnapshot(snapshot: InsertRankSnapshot): Promise<RankSnapshot>;
+  getRankSnapshots(keywordId: string, limit?: number): Promise<RankSnapshot[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -50,6 +62,8 @@ export class MemStorage implements IStorage {
   private activities: Map<string, Activity>;
   private savedItems: Map<string, SavedItem>;
   private audits: Map<string, Audit>;
+  private keywords: Map<string, Keyword>;
+  private rankSnapshots: Map<string, RankSnapshot>;
 
   constructor() {
     this.users = new Map();
@@ -57,6 +71,8 @@ export class MemStorage implements IStorage {
     this.activities = new Map();
     this.savedItems = new Map();
     this.audits = new Map();
+    this.keywords = new Map();
+    this.rankSnapshots = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -209,6 +225,61 @@ export class MemStorage implements IStorage {
     this.audits.set(id, updatedAudit);
     return updatedAudit;
   }
+
+  async createKeyword(insertKeyword: InsertKeyword): Promise<Keyword> {
+    const id = randomUUID();
+    const keyword: Keyword = {
+      id,
+      userId: insertKeyword.userId,
+      keyword: insertKeyword.keyword,
+      targetUrl: insertKeyword.targetUrl,
+      searchEngine: insertKeyword.searchEngine ?? 'google',
+      location: insertKeyword.location ?? null,
+      device: insertKeyword.device ?? 'desktop',
+      createdAt: new Date(),
+    };
+    this.keywords.set(id, keyword);
+    return keyword;
+  }
+
+  async getKeyword(id: string, userId: string): Promise<Keyword | undefined> {
+    const keyword = this.keywords.get(id);
+    if (!keyword || keyword.userId !== userId) return undefined;
+    return keyword;
+  }
+
+  async getKeywords(userId: string): Promise<Keyword[]> {
+    return Array.from(this.keywords.values())
+      .filter((keyword) => keyword.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async deleteKeyword(id: string, userId: string): Promise<boolean> {
+    const keyword = this.keywords.get(id);
+    if (!keyword || keyword.userId !== userId) return false;
+    return this.keywords.delete(id);
+  }
+
+  async createRankSnapshot(insertSnapshot: InsertRankSnapshot): Promise<RankSnapshot> {
+    const id = randomUUID();
+    const snapshot: RankSnapshot = {
+      id,
+      keywordId: insertSnapshot.keywordId,
+      rank: insertSnapshot.rank ?? null,
+      page: insertSnapshot.page ?? null,
+      url: insertSnapshot.url ?? null,
+      createdAt: new Date(),
+    };
+    this.rankSnapshots.set(id, snapshot);
+    return snapshot;
+  }
+
+  async getRankSnapshots(keywordId: string, limit: number = 30): Promise<RankSnapshot[]> {
+    return Array.from(this.rankSnapshots.values())
+      .filter((snapshot) => snapshot.keywordId === keywordId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
 }
 
 // PostgreSQL database storage implementation
@@ -360,6 +431,55 @@ export class DatabaseStorage implements IStorage {
       .where(eq(audits.id, id))
       .returning();
     return audit || undefined;
+  }
+
+  async createKeyword(insertKeyword: InsertKeyword): Promise<Keyword> {
+    const [keyword] = await db
+      .insert(keywords)
+      .values(insertKeyword)
+      .returning();
+    return keyword;
+  }
+
+  async getKeyword(id: string, userId: string): Promise<Keyword | undefined> {
+    const [keyword] = await db
+      .select()
+      .from(keywords)
+      .where(and(eq(keywords.id, id), eq(keywords.userId, userId)));
+    return keyword || undefined;
+  }
+
+  async getKeywords(userId: string): Promise<Keyword[]> {
+    return await db
+      .select()
+      .from(keywords)
+      .where(eq(keywords.userId, userId))
+      .orderBy(desc(keywords.createdAt));
+  }
+
+  async deleteKeyword(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(keywords)
+      .where(and(eq(keywords.id, id), eq(keywords.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async createRankSnapshot(insertSnapshot: InsertRankSnapshot): Promise<RankSnapshot> {
+    const [snapshot] = await db
+      .insert(rankSnapshots)
+      .values(insertSnapshot)
+      .returning();
+    return snapshot;
+  }
+
+  async getRankSnapshots(keywordId: string, limit: number = 30): Promise<RankSnapshot[]> {
+    return await db
+      .select()
+      .from(rankSnapshots)
+      .where(eq(rankSnapshots.keywordId, keywordId))
+      .orderBy(desc(rankSnapshots.createdAt))
+      .limit(limit);
   }
 }
 

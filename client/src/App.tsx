@@ -14,6 +14,7 @@ import Keywords from "@/pages/Keywords";
 import Content from "@/pages/Content";
 import Competitors from "@/pages/Competitors";
 import Chatbot from "@/pages/Chatbot";
+import RankTracking from "@/pages/RankTracking";
 import SavedItems from "@/pages/SavedItems";
 import Profile from "@/pages/Profile";
 import SeoAudit from "@/pages/SeoAudit";
@@ -49,6 +50,11 @@ function Router() {
       <Route path="/dashboard/chatbot">
         <ProtectedRoute>
           <Chatbot />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/rank-tracking">
+        <ProtectedRoute>
+          <RankTracking />
         </ProtectedRoute>
       </Route>
       <Route path="/dashboard/seo-audit">
