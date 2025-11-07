@@ -734,11 +734,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const result = await seoAuditor.runAudit(validatedData.url);
           
-          // For now, we'll create a completed audit record
-          // TODO: Add update method to properly update existing audit
-          const completedAudit = await storage.createAudit({
-            userId,
-            url: validatedData.url,
+          // Update the existing audit record with results
+          await storage.updateAudit(audit.id, {
             score: result.score,
             status: 'completed',
             findings: result.findings,
@@ -751,7 +748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId,
             type: 'seo_audit',
             description: `Ran SEO audit for ${validatedData.url}`,
-            metadata: { auditId: completedAudit.id, score: result.score },
+            metadata: { auditId: audit.id, score: result.score },
           });
         } catch (error) {
           console.error('SEO audit failed:', error);

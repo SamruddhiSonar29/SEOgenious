@@ -10,6 +10,8 @@ import {
   type InsertSavedItem,
   type Audit,
   type InsertAudit,
+  type AuditFinding,
+  type AuditMetadata,
   type Keyword,
   type InsertKeyword,
   type RankSnapshot,
@@ -48,6 +50,13 @@ export interface IStorage {
   getAudit(id: string, userId: string): Promise<Audit | undefined>;
   getAudits(userId: string, limit?: number): Promise<Audit[]>;
   updateAuditStatus(id: string, status: string): Promise<Audit | undefined>;
+  updateAudit(id: string, updates: {
+    score?: number;
+    status?: string;
+    findings?: AuditFinding[];
+    recommendations?: string[];
+    metadata?: AuditMetadata;
+  }): Promise<Audit | undefined>;
   createKeyword(keyword: InsertKeyword): Promise<Keyword>;
   getKeyword(id: string, userId: string): Promise<Keyword | undefined>;
   getKeywords(userId: string): Promise<Keyword[]>;
@@ -196,9 +205,9 @@ export class MemStorage implements IStorage {
       url: insertAudit.url,
       score: insertAudit.score ?? 0,
       status: insertAudit.status ?? 'pending',
-      findings: insertAudit.findings ?? [],
-      recommendations: insertAudit.recommendations ?? [],
-      metadata: insertAudit.metadata ?? null,
+      findings: (insertAudit.findings ?? []) as AuditFinding[],
+      recommendations: (insertAudit.recommendations ?? []) as string[],
+      metadata: (insertAudit.metadata ?? null) as AuditMetadata | null,
       createdAt: new Date(),
     };
     this.audits.set(id, audit);
@@ -222,6 +231,20 @@ export class MemStorage implements IStorage {
     const audit = this.audits.get(id);
     if (!audit) return undefined;
     const updatedAudit = { ...audit, status };
+    this.audits.set(id, updatedAudit);
+    return updatedAudit;
+  }
+
+  async updateAudit(id: string, updates: {
+    score?: number;
+    status?: string;
+    findings?: AuditFinding[];
+    recommendations?: string[];
+    metadata?: AuditMetadata;
+  }): Promise<Audit | undefined> {
+    const audit = this.audits.get(id);
+    if (!audit) return undefined;
+    const updatedAudit = { ...audit, ...updates };
     this.audits.set(id, updatedAudit);
     return updatedAudit;
   }
@@ -402,7 +425,7 @@ export class DatabaseStorage implements IStorage {
   async createAudit(insertAudit: InsertAudit): Promise<Audit> {
     const [audit] = await db
       .insert(audits)
-      .values(insertAudit)
+      .values(insertAudit as any)
       .returning();
     return audit;
   }
@@ -428,6 +451,21 @@ export class DatabaseStorage implements IStorage {
     const [audit] = await db
       .update(audits)
       .set({ status })
+      .where(eq(audits.id, id))
+      .returning();
+    return audit || undefined;
+  }
+
+  async updateAudit(id: string, updates: {
+    score?: number;
+    status?: string;
+    findings?: AuditFinding[];
+    recommendations?: string[];
+    metadata?: AuditMetadata;
+  }): Promise<Audit | undefined> {
+    const [audit] = await db
+      .update(audits)
+      .set(updates)
       .where(eq(audits.id, id))
       .returning();
     return audit || undefined;
