@@ -141,7 +141,7 @@ export default function SeoAudit() {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!currentAudit) return;
     
     toast({
@@ -149,13 +149,40 @@ export default function SeoAudit() {
       description: "Generating PDF report...",
     });
     
-    // TODO: Implement PDF export
-    setTimeout(() => {
+    try {
+      const response = await fetch(`/api/reports/seo-audit/${currentAudit.id}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `seo-audit-${currentAudit.url.replace(/[^a-z0-9]/gi, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
       toast({
         title: "Export Complete",
-        description: "Your PDF report is ready for download.",
+        description: "Your PDF report has been downloaded.",
       });
-    }, 1500);
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate PDF report. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getScoreColor = (score: number) => {

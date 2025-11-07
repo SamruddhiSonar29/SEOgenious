@@ -21,6 +21,7 @@ import { initN8nWebhooks } from "./n8n-webhooks";
 import * as aiWrapper from "./services/aiWrapper";
 import { seoAuditor } from "./services/seoAuditor";
 import { rankTrackerService } from "./services/rankTracker";
+import { pdfGeneratorService } from "./services/pdfGenerator";
 
 // Initialize n8n webhooks (null if not configured)
 const n8nWebhooks = initN8nWebhooks();
@@ -955,6 +956,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete keyword' });
+    }
+  });
+
+  app.post('/api/reports/seo-audit/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const audit = await storage.getAudit(id, userId);
+      if (!audit) {
+        return res.status(404).json({ error: 'Audit not found or not authorized' });
+      }
+
+      if (audit.status !== 'completed') {
+        return res.status(400).json({ error: 'Audit must be completed before generating PDF' });
+      }
+
+      const pdfBuffer = await pdfGeneratorService.generateSEOAuditReport(audit);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="seo-audit-${audit.url.replace(/[^a-z0-9]/gi, '-')}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      res.status(500).json({ error: 'Failed to generate PDF report' });
+    }
+  });
+
+  app.post('/api/reports/rank-tracking/:keywordId', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { keywordId } = req.params;
+      
+      const keyword = await storage.getKeyword(keywordId, userId);
+      if (!keyword) {
+        return res.status(404).json({ error: 'Keyword not found or not authorized' });
+      }
+
+      const snapshots = await storage.getRankSnapshots(keywordId);
+      
+      const pdfBuffer = await pdfGeneratorService.generateRankTrackingReport({
+        keyword: keyword.keyword,
+        targetUrl: keyword.targetUrl,
+        currentRank: snapshots.length > 0 ? snapshots[snapshots.length - 1].rank : null,
+        history: snapshots.map((s) => ({
+          rank: s.rank,
+          checkedAt: s.createdAt,
+        })),
+      });
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="rank-tracking-${keyword.keyword.replace(/[^a-z0-9]/gi, '-')}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      res.status(500).json({ error: 'Failed to generate PDF report' });
     }
   });
 

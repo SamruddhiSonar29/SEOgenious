@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, TrendingDown, Minus, RefreshCw, Trash2, Plus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, RefreshCw, Trash2, Plus, Download } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { KeywordWithRankData } from "@shared/schema";
 
@@ -124,6 +124,49 @@ export default function RankTracking() {
     return "—";
   };
 
+  const handleExportPDF = async (keywordId: string) => {
+    toast({
+      title: "Export Started",
+      description: "Generating PDF report...",
+    });
+
+    try {
+      const response = await fetch(`/api/reports/rank-tracking/${keywordId}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const keyword = keywordsData?.keywords.find(k => k.id === keywordId);
+      a.download = `rank-tracking-${keyword?.keyword.replace(/[^a-z0-9]/gi, '-') || 'report'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Complete",
+        description: "Your PDF report has been downloaded.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate PDF report. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const selectedKeyword = keywordsData?.keywords.find(k => k.id === selectedKeywordId);
 
   const chartData = selectedKeyword?.snapshots
@@ -230,8 +273,21 @@ export default function RankTracking() {
           {selectedKeyword && (
             <Card>
               <CardHeader>
-                <CardTitle>Rank History: {selectedKeyword.keyword}</CardTitle>
-                <CardDescription>{selectedKeyword.targetUrl}</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Rank History: {selectedKeyword.keyword}</CardTitle>
+                    <CardDescription>{selectedKeyword.targetUrl}</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleExportPDF(selectedKeyword.id)}
+                    data-testid="button-export-pdf"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export PDF
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {chartData.length > 0 ? (
