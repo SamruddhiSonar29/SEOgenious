@@ -311,3 +311,145 @@ export function exportKeywordResearchToPDF(seedKeyword: string, keywords: Array<
   const filename = `keyword-research-${seedKeyword.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 }
+
+/**
+ * Export content outline to PDF
+ */
+export function exportContentOutlineToPDF(topic: string, outline: {
+  title: string;
+  metaDescription: string;
+  targetWordCount: number;
+  sections: Array<{
+    heading: string;
+    level: 'h2' | 'h3';
+    keyPoints: string[];
+    wordCount: number;
+  }>;
+  seoTips: string[];
+  relatedQuestions: string[];
+}) {
+  const doc = new jsPDF();
+  let yPos = 20;
+  
+  // Title
+  doc.setFontSize(18);
+  doc.text('Content Outline', 14, yPos);
+  yPos += 10;
+  
+  // Topic
+  doc.setFontSize(14);
+  doc.text(`Topic: ${topic}`, 14, yPos);
+  yPos += 10;
+  
+  // Main Title
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(outline.title, 14, yPos);
+  yPos += 8;
+  
+  // Meta Description
+  if (outline.metaDescription) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const metaLines = doc.splitTextToSize(`Meta: ${outline.metaDescription}`, 180);
+    doc.text(metaLines, 14, yPos);
+    yPos += (metaLines.length * 4) + 4;
+  }
+  
+  // Stats
+  doc.setFontSize(10);
+  doc.text(`Target Word Count: ${outline.targetWordCount.toLocaleString()} | Sections: ${outline.sections.length}`, 14, yPos);
+  yPos += 10;
+  
+  // Sections
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Content Structure', 14, yPos);
+  yPos += 8;
+  
+  doc.setFontSize(9);
+  outline.sections.forEach((section) => {
+    // Check if we need a new page
+    if (yPos > 270) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    const indent = section.level === 'h3' ? 20 : 14;
+    
+    // Section heading
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${section.level.toUpperCase()}: ${section.heading} (~${section.wordCount} words)`, indent, yPos);
+    yPos += 6;
+    
+    // Key points
+    doc.setFont('helvetica', 'normal');
+    section.keyPoints.forEach((point) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      const lines = doc.splitTextToSize(`• ${point}`, 170);
+      doc.text(lines, indent + 4, yPos);
+      yPos += (lines.length * 4) + 2;
+    });
+    
+    yPos += 4;
+  });
+  
+  // SEO Tips
+  if (outline.seoTips.length > 0) {
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos += 6;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SEO Tips', 14, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    outline.seoTips.forEach((tip, idx) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      const lines = doc.splitTextToSize(`${idx + 1}. ${tip}`, 180);
+      doc.text(lines, 14, yPos);
+      yPos += (lines.length * 4) + 2;
+    });
+  }
+  
+  // Related Questions
+  if (outline.relatedQuestions.length > 0) {
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos += 6;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Related Questions', 14, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    outline.relatedQuestions.forEach((question, idx) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      const lines = doc.splitTextToSize(`Q${idx + 1}: ${question}`, 180);
+      doc.text(lines, 14, yPos);
+      yPos += (lines.length * 4) + 2;
+    });
+  }
+  
+  // Download
+  const filename = `content-outline-${topic.replace(/\s+/g, '-').substring(0, 30)}-${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+}

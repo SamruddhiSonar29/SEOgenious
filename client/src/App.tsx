@@ -12,6 +12,7 @@ import KeywordDensity from "@/pages/KeywordDensity";
 import Dashboard from "@/pages/Dashboard";
 import KeywordResearch from "@/pages/KeywordResearch";
 import Keywords from "@/pages/Keywords";
+import ContentOutlineGenerator from "@/pages/ContentOutlineGenerator";
 import Content from "@/pages/Content";
 import Competitors from "@/pages/Competitors";
 import Chatbot from "@/pages/Chatbot";
@@ -40,6 +41,11 @@ function Router() {
       <Route path="/dashboard/keyword-research">
         <ProtectedRoute>
           <KeywordResearch />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/content-outline">
+        <ProtectedRoute>
+          <ContentOutlineGenerator />
         </ProtectedRoute>
       </Route>
       <Route path="/dashboard/keywords">

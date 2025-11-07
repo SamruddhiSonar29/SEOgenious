@@ -27,6 +27,7 @@ import { trendDiscoveryService } from "./services/trendDiscovery";
 import { contentPlannerService } from "./services/contentPlanner";
 import { seoScoreCalculator } from "./services/seoScoreCalculator";
 import * as keywordResearchService from "./services/keywordResearch";
+import * as contentOutlineService from "./services/contentOutline";
 import { 
   analyzeBacklinksRequestSchema, 
   searchTrendsRequestSchema,
@@ -301,13 +302,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/content_outline', checkCSRF, requireAuth, (req, res) => {
-    const { keyword } = req.body;
-    if (!keyword) {
-      return res.status(400).json({ error: 'Keyword is required' });
+  app.post('/api/content_outline', checkCSRF, requireAuth, async (req, res) => {
+    const { topic } = req.body;
+    if (!topic) {
+      return res.status(400).json({ error: 'Topic is required' });
     }
-    const outline = generateOutline(keyword);
-    res.json(outline);
+
+    try {
+      const outline = await contentOutlineService.generateContentOutline(topic);
+
+      // Log activity (non-blocking)
+      if (req.session?.userId) {
+        try {
+          await storage.createActivity({
+            userId: req.session.userId,
+            type: 'content_outline',
+            description: `Generated content outline for "${topic}"`,
+            metadata: { topic, sectionCount: outline.sections.length },
+          });
+
+          // Send n8n webhook notification (non-blocking)
+          if (n8nWebhooks) {
+            const user = await storage.getUser(req.session.userId);
+            if (user) {
+              n8nWebhooks.onContentOutline({
+                userId: user.id,
+                userEmail: user.email,
+                topic,
+                outline,
+                timestamp: new Date(),
+              }).catch(err => console.error('n8n webhook error:', err));
+            }
+          }
+        } catch (error) {
+          console.error('Failed to log activity:', error);
+        }
+      }
+
+      res.json(outline);
+    } catch (error) {
+      console.error('Content outline error:', error);
+      res.status(500).json({ error: 'Failed to generate content outline' });
+    }
   });
 
   app.post('/api/onpage_seo', checkCSRF, requireAuth, (req, res) => {

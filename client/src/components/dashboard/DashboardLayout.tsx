@@ -20,7 +20,8 @@ import {
   Sparkles,
   Calendar,
   Target,
-  Lightbulb
+  Lightbulb,
+  BookOpen
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -35,6 +36,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Keyword Research', href: '/dashboard/keyword-research', icon: Lightbulb },
+    { name: 'Content Outline', href: '/dashboard/content-outline', icon: BookOpen },
     { name: 'Keywords', href: '/dashboard/keywords', icon: Search },
     { name: 'Content', href: '/dashboard/content', icon: FileText },
     { name: 'Competitors', href: '/dashboard/competitors', icon: TrendingUp },
