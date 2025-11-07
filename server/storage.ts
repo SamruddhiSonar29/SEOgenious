@@ -27,6 +27,7 @@ import {
   type ContentItem,
   type InsertContentItem,
   type UpdateContentItem,
+  type SeoScore,
   users,
   chatMessages,
   activities,
@@ -38,7 +39,8 @@ import {
   backlinkSnapshots,
   trendSearches,
   trendSnapshots,
-  contentItems
+  contentItems,
+  seoScores
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -113,6 +115,22 @@ export interface IStorage {
   getContentItemsByUserId(userId: string): Promise<ContentItem[]>;
   updateContentItem(id: string, updates: UpdateContentItem): Promise<ContentItem | undefined>;
   deleteContentItem(id: string): Promise<boolean>;
+  createSeoScore(score: {
+    userId: string;
+    domain: string;
+    overallScore: number;
+    technicalScore: number;
+    rankingScore: number;
+    contentScore: number;
+    activityScore: number;
+    metadata: string;
+  }): Promise<SeoScore>;
+  getLatestSeoScore(userId: string, domain: string): Promise<SeoScore | null>;
+  getSeoScoreHistory(userId: string, domain: string): Promise<SeoScore[]>;
+  getAuditsByUserId(userId: string): Promise<Audit[]>;
+  getKeywordsByUserId(userId: string): Promise<Keyword[]>;
+  getRankSnapshotsByKeywordId(keywordId: string): Promise<RankSnapshot[]>;
+  getActivitiesByUserId(userId: string): Promise<Activity[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -834,6 +852,79 @@ export class DatabaseStorage implements IStorage {
       .where(eq(contentItems.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async createSeoScore(score: {
+    userId: string;
+    domain: string;
+    overallScore: number;
+    technicalScore: number;
+    rankingScore: number;
+    contentScore: number;
+    activityScore: number;
+    metadata: string;
+  }): Promise<SeoScore> {
+    const [newScore] = await db
+      .insert(seoScores)
+      .values(score)
+      .returning();
+    return newScore;
+  }
+
+  async getLatestSeoScore(userId: string, domain: string): Promise<SeoScore | null> {
+    const [score] = await db
+      .select()
+      .from(seoScores)
+      .where(and(
+        eq(seoScores.userId, userId),
+        eq(seoScores.domain, domain)
+      ))
+      .orderBy(desc(seoScores.createdAt))
+      .limit(1);
+    return score || null;
+  }
+
+  async getSeoScoreHistory(userId: string, domain: string): Promise<SeoScore[]> {
+    return await db
+      .select()
+      .from(seoScores)
+      .where(and(
+        eq(seoScores.userId, userId),
+        eq(seoScores.domain, domain)
+      ))
+      .orderBy(desc(seoScores.createdAt))
+      .limit(30);
+  }
+
+  async getAuditsByUserId(userId: string): Promise<Audit[]> {
+    return await db
+      .select()
+      .from(audits)
+      .where(eq(audits.userId, userId))
+      .orderBy(desc(audits.createdAt));
+  }
+
+  async getKeywordsByUserId(userId: string): Promise<Keyword[]> {
+    return await db
+      .select()
+      .from(keywords)
+      .where(eq(keywords.userId, userId));
+  }
+
+  async getRankSnapshotsByKeywordId(keywordId: string): Promise<RankSnapshot[]> {
+    return await db
+      .select()
+      .from(rankSnapshots)
+      .where(eq(rankSnapshots.keywordId, keywordId))
+      .orderBy(desc(rankSnapshots.checkedAt));
+  }
+
+  async getActivitiesByUserId(userId: string): Promise<Activity[]> {
+    return await db
+      .select()
+      .from(activities)
+      .where(eq(activities.userId, userId))
+      .orderBy(desc(activities.timestamp));
   }
 }
 

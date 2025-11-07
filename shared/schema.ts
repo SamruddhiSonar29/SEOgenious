@@ -514,3 +514,24 @@ export const updateContentItemSchema = z.object({
 export type InsertContentItem = z.infer<typeof insertContentItemSchema>;
 export type UpdateContentItem = z.infer<typeof updateContentItemSchema>;
 export type ContentItem = typeof contentItems.$inferSelect;
+
+// SEO Score System Feature
+export const seoScores = pgTable("seo_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  domain: text("domain").notNull(),
+  overallScore: integer("overall_score").notNull(),
+  technicalScore: integer("technical_score").notNull(),
+  rankingScore: integer("ranking_score").notNull(),
+  contentScore: integer("content_score").notNull(),
+  activityScore: integer("activity_score").notNull(),
+  metadata: text("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const calculateScoreRequestSchema = z.object({
+  domain: z.string().url("Must be a valid URL").or(z.string().min(1, "Domain is required")),
+});
+
+export type CalculateScoreRequest = z.infer<typeof calculateScoreRequestSchema>;
+export type SeoScore = typeof seoScores.$inferSelect;
