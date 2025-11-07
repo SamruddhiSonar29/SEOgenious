@@ -22,6 +22,7 @@ Form-based authentication uses email/password with `bcryptjs` hashing. Session-b
 
 ### Features
 *   **Keyword Research**: AI-powered keyword discovery tool that generates 50+ keyword ideas from a seed keyword, including related keywords, long-tail variations, questions, and competitor keywords. Features comprehensive metrics (search volume, competition, difficulty, CPC), intent classification, trend indicators, sortable columns, filtering by intent/volume/difficulty, and CSV/PDF export capabilities.
+*   **Content Outline Generator**: AI-powered content outline creation tool that generates comprehensive, SEO-optimized outlines with hierarchical heading structure (H2/H3), key points for each section, recommended word counts, actionable SEO tips, and related questions to answer. Features PDF export and visual hierarchy display.
 *   **SEO Health Audit**: Provides comprehensive technical SEO analysis with automated scoring, 15+ technical checks, AI-powered recommendations, and asynchronous execution.
 *   **Rank Tracking Dashboard**: Monitors keyword rankings over time with historical trend visualization, snapshot management, and manual rank checks.
 *   **AI PDF Report Generator**: Exports professional PDF reports for SEO audits and rank tracking data, featuring AI-powered summaries, branded layouts, and two report types (SEO Audit and Rank Tracking).
