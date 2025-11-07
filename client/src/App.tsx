@@ -18,6 +18,7 @@ import RankTracking from "@/pages/RankTracking";
 import Backlinks from "@/pages/Backlinks";
 import Trends from "@/pages/Trends";
 import ContentPlanner from "@/pages/ContentPlanner";
+import SeoScoreDashboard from "@/pages/SeoScoreDashboard";
 import SavedItems from "@/pages/SavedItems";
 import Profile from "@/pages/Profile";
 import SeoAudit from "@/pages/SeoAudit";
@@ -78,6 +79,11 @@ function Router() {
       <Route path="/dashboard/content-planner">
         <ProtectedRoute>
           <ContentPlanner />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/seo-score">
+        <ProtectedRoute>
+          <SeoScoreDashboard />
         </ProtectedRoute>
       </Route>
       <Route path="/dashboard/saved">

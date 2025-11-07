@@ -25,11 +25,13 @@ import { pdfGeneratorService } from "./services/pdfGenerator";
 import { backlinkAnalyzerService } from "./services/backlinkAnalyzer";
 import { trendDiscoveryService } from "./services/trendDiscovery";
 import { contentPlannerService } from "./services/contentPlanner";
+import { seoScoreCalculator } from "./services/seoScoreCalculator";
 import { 
   analyzeBacklinksRequestSchema, 
   searchTrendsRequestSchema,
   insertContentItemSchema,
-  updateContentItemSchema
+  updateContentItemSchema,
+  calculateScoreRequestSchema
 } from "@shared/schema";
 
 // Initialize n8n webhooks (null if not configured)
@@ -1366,6 +1368,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Get upcoming content error:', error);
       res.status(500).json({ error: 'Failed to fetch upcoming content' });
+    }
+  });
+
+  // SEO Score System Routes
+  app.post('/api/seo-score/calculate', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const result = calculateScoreRequestSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: 'Invalid request data', details: result.error.errors });
+      }
+
+      const score = await seoScoreCalculator.calculateScore(userId, result.data.domain);
+      
+      if (n8nWebhooks) {
+        n8nWebhooks.trigger('seo_score_calculated', { userId, domain: result.data.domain, score: score.overallScore });
+      }
+
+      res.json(score);
+    } catch (error) {
+      console.error('Calculate SEO score error:', error);
+      res.status(500).json({ error: 'Failed to calculate SEO score' });
+    }
+  });
+
+  app.get('/api/seo-score/:domain', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { domain } = req.params;
+
+      const score = await seoScoreCalculator.getLatestScore(userId, domain);
+      
+      if (!score) {
+        return res.status(404).json({ error: 'No score found for this domain' });
+      }
+
+      res.json(score);
+    } catch (error) {
+      console.error('Get SEO score error:', error);
+      res.status(500).json({ error: 'Failed to fetch SEO score' });
+    }
+  });
+
+  app.get('/api/seo-score/:domain/history', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { domain } = req.params;
+
+      const history = await seoScoreCalculator.getScoreHistory(userId, domain);
+      
+      res.json(history);
+    } catch (error) {
+      console.error('Get SEO score history error:', error);
+      res.status(500).json({ error: 'Failed to fetch score history' });
     }
   });
 
