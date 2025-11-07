@@ -99,6 +99,41 @@ The Rank Tracking Dashboard enables users to monitor keyword rankings over time 
 - TanStack Query: Conditional queryKey prevents requests when no keyword is selected
 - Data persistence: PostgreSQL via Drizzle ORM with type-safe schema validation using Zod
 
+### Feature 7: AI PDF Report Generator (COMPLETED)
+
+The AI PDF Report Generator enables users to export professional PDF reports for SEO audits and rank tracking data with AI-powered summaries.
+
+**Core Service (`server/services/pdfGenerator.ts`):**
+- **Professional PDF Generation**: Uses jsPDF and jspdf-autotable libraries for report creation
+- **AI-Powered Summaries**: Generates executive summaries using `aiWrapper.executiveSummary` function
+- **Branded Layout**: Consistent header with SEOgenious branding, color-coded sections, professional formatting
+- **Two Report Types**: SEO Audit reports and Rank Tracking reports with different layouts and content
+
+**PDF Report Components:**
+- **SEO Audit Report**: Website URL, audit date, color-coded score badge, AI executive summary, detailed findings table (category, severity, issue, element), actionable recommendations list, comprehensive metadata (page load time, size, resource count, links)
+- **Rank Tracking Report**: Keyword, target URL, current rank position, AI-powered trend analysis, historical rank data table with dates and positions, visual rank trend indicator
+
+**API Endpoints:**
+- `POST /api/reports/seo-audit/:id` - Generate PDF for completed SEO audit (authenticated, CSRF protected)
+- `POST /api/reports/rank-tracking/:keywordId` - Generate PDF for keyword rank history (authenticated, CSRF protected)
+
+**Frontend Integration:**
+- **SEO Audit Page**: Export PDF button in audit details header (data-testid="button-export-pdf")
+- **Rank Tracking Page**: Export PDF button in chart header when keyword selected (data-testid="button-export-pdf")
+- **Download Flow**: Fetch API → Blob creation → Automatic download trigger → Toast notifications (started → complete/failed)
+
+**Key Implementation Details:**
+- **jsPDF Import**: Uses named import `import { jsPDF } from 'jspdf'` for ESM compatibility
+- **AI Fallback**: Static summary generation if AI service fails to ensure reports always generate
+- **Binary Response**: Returns PDF as Buffer with `Content-Type: application/pdf` and `Content-Disposition: attachment` headers
+- **Storage Integration**: Fixed audit update bug by adding `updateAudit` method to IStorage interface instead of creating duplicate records
+- **Type Safety**: Explicit type casting for Drizzle ORM array fields to resolve TypeScript strict checking
+
+**Bug Fixes During Implementation:**
+- Fixed SEO audit stuck in "running" status: Added `updateAudit(id, updates)` method to storage interface to update existing audits instead of creating duplicates
+- Fixed jsPDF import error: Changed from default export to named export for proper ESM module loading
+- Fixed TypeScript strict types: Added explicit type casting for audit findings, recommendations, and metadata arrays
+
 ## External Dependencies
 
 ### UI Component Libraries
