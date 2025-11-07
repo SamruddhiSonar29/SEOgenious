@@ -225,3 +225,89 @@ export function exportSERPAnalysisToPDF(
   const filename = `serp-analysis-${keyword.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 }
+
+/**
+ * Export keyword research to CSV
+ */
+export function exportKeywordResearchToCSV(keywords: Array<{
+  keyword: string;
+  searchVolume: number;
+  competition: number;
+  difficulty: number;
+  cpc: number;
+  intent: string;
+  trend: string;
+}>) {
+  // Create CSV header
+  let csv = 'Keyword,Search Volume,Competition,Difficulty,CPC,Intent,Trend\n';
+  
+  // Add each keyword
+  keywords.forEach((kw) => {
+    csv += `"${kw.keyword}",${kw.searchVolume},${kw.competition},${kw.difficulty},${kw.cpc},"${kw.intent}","${kw.trend}"\n`;
+  });
+  
+  // Download
+  const filename = `keyword-research-${new Date().toISOString().split('T')[0]}.csv`;
+  downloadFile(csv, filename, 'text/csv');
+}
+
+/**
+ * Export keyword research to PDF
+ */
+export function exportKeywordResearchToPDF(seedKeyword: string, keywords: Array<{
+  keyword: string;
+  searchVolume: number;
+  competition: number;
+  difficulty: number;
+  cpc: number;
+  intent: string;
+  trend: string;
+}>) {
+  const doc = new jsPDF();
+  
+  // Title
+  doc.setFontSize(18);
+  doc.text('Keyword Research Report', 14, 20);
+  
+  // Seed keyword
+  doc.setFontSize(12);
+  doc.text(`Seed Keyword: "${seedKeyword}"`, 14, 30);
+  
+  // Date and stats
+  doc.setFontSize(10);
+  doc.text(`Generated: ${new Date().toLocaleDateString()} | Keywords Found: ${keywords.length}`, 14, 38);
+  
+  // Table data
+  const tableData = keywords.map((kw) => [
+    kw.keyword,
+    kw.searchVolume.toLocaleString(),
+    `${kw.competition}`,
+    `${kw.difficulty}`,
+    `$${kw.cpc.toFixed(2)}`,
+    kw.intent,
+    kw.trend
+  ]);
+  
+  // Create table
+  autoTable(doc, {
+    startY: 44,
+    head: [['Keyword', 'Volume', 'Comp', 'Diff', 'CPC', 'Intent', 'Trend']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: { fillColor: [79, 70, 229] },
+    styles: { fontSize: 7 },
+    columnStyles: {
+      0: { cellWidth: 55 },
+      1: { cellWidth: 20, halign: 'right' },
+      2: { cellWidth: 15, halign: 'center' },
+      3: { cellWidth: 15, halign: 'center' },
+      4: { cellWidth: 18, halign: 'right' },
+      5: { cellWidth: 28 },
+      6: { cellWidth: 20 }
+    }
+  });
+  
+  // Download
+  const filename = `keyword-research-${seedKeyword.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+}

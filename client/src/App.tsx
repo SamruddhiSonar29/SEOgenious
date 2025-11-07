@@ -10,6 +10,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import KeywordDensity from "@/pages/KeywordDensity";
 import Dashboard from "@/pages/Dashboard";
+import KeywordResearch from "@/pages/KeywordResearch";
 import Keywords from "@/pages/Keywords";
 import Content from "@/pages/Content";
 import Competitors from "@/pages/Competitors";
@@ -34,6 +35,11 @@ function Router() {
       <Route path="/dashboard">
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/keyword-research">
+        <ProtectedRoute>
+          <KeywordResearch />
         </ProtectedRoute>
       </Route>
       <Route path="/dashboard/keywords">

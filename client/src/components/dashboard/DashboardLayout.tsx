@@ -19,7 +19,8 @@ import {
   Link as LinkIcon,
   Sparkles,
   Calendar,
-  Target
+  Target,
+  Lightbulb
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -33,6 +34,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Keyword Research', href: '/dashboard/keyword-research', icon: Lightbulb },
     { name: 'Keywords', href: '/dashboard/keywords', icon: Search },
     { name: 'Content', href: '/dashboard/content', icon: FileText },
     { name: 'Competitors', href: '/dashboard/competitors', icon: TrendingUp },
