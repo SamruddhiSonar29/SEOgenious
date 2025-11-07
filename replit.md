@@ -25,6 +25,7 @@ Form-based authentication uses email/password with `bcryptjs` hashing. Session-b
 *   **Rank Tracking Dashboard**: Monitors keyword rankings over time with historical trend visualization, snapshot management, and manual rank checks.
 *   **AI PDF Report Generator**: Exports professional PDF reports for SEO audits and rank tracking data, featuring AI-powered summaries, branded layouts, and two report types (SEO Audit and Rank Tracking).
 *   **Content Planner**: Offers a complete editorial workflow management system with Kanban board visualization and calendar scheduling, supporting full CRUD operations, status workflow management, and activity tracking.
+*   **SEO Score System**: Intelligent scoring dashboard that aggregates performance across Technical SEO (35%), Rankings (30%), Content (20%), and Activity (15%) into a comprehensive 0-100 score, featuring circular gauge visualization, category breakdowns, historical trend charts, and context-aware recommendations.
 
 ## External Dependencies
 
