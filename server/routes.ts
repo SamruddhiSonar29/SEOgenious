@@ -24,7 +24,13 @@ import { rankTrackerService } from "./services/rankTracker";
 import { pdfGeneratorService } from "./services/pdfGenerator";
 import { backlinkAnalyzerService } from "./services/backlinkAnalyzer";
 import { trendDiscoveryService } from "./services/trendDiscovery";
-import { analyzeBacklinksRequestSchema, searchTrendsRequestSchema } from "@shared/schema";
+import { contentPlannerService } from "./services/contentPlanner";
+import { 
+  analyzeBacklinksRequestSchema, 
+  searchTrendsRequestSchema,
+  insertContentItemSchema,
+  updateContentItemSchema
+} from "@shared/schema";
 
 // Initialize n8n webhooks (null if not configured)
 const n8nWebhooks = initN8nWebhooks();
@@ -1241,6 +1247,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('PDF generation error:', error);
       res.status(500).json({ error: 'Failed to generate PDF report' });
+    }
+  });
+
+  // Content Planner Routes
+  app.post('/api/content', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const result = insertContentItemSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: 'Invalid content item data', details: result.error.errors });
+      }
+
+      const contentItem = await contentPlannerService.createContentItem(userId, result.data);
+      
+      if (n8nWebhooks) {
+        n8nWebhooks.trigger('content_created', { userId, contentItem });
+      }
+
+      res.json(contentItem);
+    } catch (error) {
+      console.error('Create content item error:', error);
+      res.status(500).json({ error: 'Failed to create content item' });
+    }
+  });
+
+  app.get('/api/content', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { status } = req.query;
+
+      let items;
+      if (status && typeof status === 'string') {
+        items = await contentPlannerService.getContentItemsByStatus(userId, status);
+      } else {
+        items = await contentPlannerService.getUserContentItems(userId);
+      }
+
+      res.json(items);
+    } catch (error) {
+      console.error('Get content items error:', error);
+      res.status(500).json({ error: 'Failed to fetch content items' });
+    }
+  });
+
+  app.get('/api/content/:id', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+
+      const item = await contentPlannerService.getContentItemById(userId, id);
+      
+      if (!item) {
+        return res.status(404).json({ error: 'Content item not found or not authorized' });
+      }
+
+      res.json(item);
+    } catch (error) {
+      console.error('Get content item error:', error);
+      res.status(500).json({ error: 'Failed to fetch content item' });
+    }
+  });
+
+  app.patch('/api/content/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      const result = updateContentItemSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: 'Invalid update data', details: result.error.errors });
+      }
+
+      const updated = await contentPlannerService.updateContentItem(userId, id, result.data);
+      
+      if (!updated) {
+        return res.status(404).json({ error: 'Content item not found or not authorized' });
+      }
+
+      if (n8nWebhooks && result.data.status) {
+        n8nWebhooks.trigger('content_status_changed', { userId, contentId: id, status: result.data.status });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Update content item error:', error);
+      res.status(500).json({ error: 'Failed to update content item' });
+    }
+  });
+
+  app.delete('/api/content/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+
+      const deleted = await contentPlannerService.deleteContentItem(userId, id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: 'Content item not found or not authorized' });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete content item error:', error);
+      res.status(500).json({ error: 'Failed to delete content item' });
+    }
+  });
+
+  app.get('/api/content/upcoming/:days?', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const days = parseInt(req.params.days || '30', 10);
+
+      const items = await contentPlannerService.getUpcomingContent(userId, days);
+      
+      res.json(items);
+    } catch (error) {
+      console.error('Get upcoming content error:', error);
+      res.status(500).json({ error: 'Failed to fetch upcoming content' });
     }
   });
 

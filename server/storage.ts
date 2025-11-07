@@ -24,6 +24,9 @@ import {
   type InsertTrendSearch,
   type TrendSnapshot,
   type InsertTrendSnapshot,
+  type ContentItem,
+  type InsertContentItem,
+  type UpdateContentItem,
   users,
   chatMessages,
   activities,
@@ -34,7 +37,8 @@ import {
   backlinkProfiles,
   backlinkSnapshots,
   trendSearches,
-  trendSnapshots
+  trendSnapshots,
+  contentItems
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -104,6 +108,11 @@ export interface IStorage {
   deleteTrendSearch(id: string, userId: string): Promise<boolean>;
   createTrendSnapshot(snapshot: InsertTrendSnapshot): Promise<TrendSnapshot>;
   getTrendSnapshots(searchId: string, limit?: number): Promise<TrendSnapshot[]>;
+  createContentItem(item: InsertContentItem): Promise<ContentItem>;
+  getContentItemById(id: string): Promise<ContentItem | undefined>;
+  getContentItemsByUserId(userId: string): Promise<ContentItem[]>;
+  updateContentItem(id: string, updates: UpdateContentItem): Promise<ContentItem | undefined>;
+  deleteContentItem(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -778,6 +787,53 @@ export class DatabaseStorage implements IStorage {
       .where(eq(trendSnapshots.searchId, searchId))
       .orderBy(desc(trendSnapshots.date))
       .limit(limit);
+  }
+
+  async createContentItem(insertItem: InsertContentItem): Promise<ContentItem> {
+    const [item] = await db
+      .insert(contentItems)
+      .values({
+        ...insertItem,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return item;
+  }
+
+  async getContentItemById(id: string): Promise<ContentItem | undefined> {
+    const [item] = await db
+      .select()
+      .from(contentItems)
+      .where(eq(contentItems.id, id));
+    return item || undefined;
+  }
+
+  async getContentItemsByUserId(userId: string): Promise<ContentItem[]> {
+    return await db
+      .select()
+      .from(contentItems)
+      .where(eq(contentItems.userId, userId))
+      .orderBy(desc(contentItems.createdAt));
+  }
+
+  async updateContentItem(id: string, updates: UpdateContentItem): Promise<ContentItem | undefined> {
+    const [item] = await db
+      .update(contentItems)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(contentItems.id, id))
+      .returning();
+    return item || undefined;
+  }
+
+  async deleteContentItem(id: string): Promise<boolean> {
+    const result = await db
+      .delete(contentItems)
+      .where(eq(contentItems.id, id))
+      .returning();
+    return result.length > 0;
   }
 }
 

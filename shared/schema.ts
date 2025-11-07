@@ -475,3 +475,42 @@ export const topicSuggestionsResponseSchema = z.object({
 export type SearchTrendsRequest = z.infer<typeof searchTrendsRequestSchema>;
 export type TrendData = z.infer<typeof trendDataSchema>;
 export type TopicSuggestionsResponse = z.infer<typeof topicSuggestionsResponseSchema>;
+
+// Content Planner Feature
+export const contentItems = pgTable("content_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  title: text("title").notNull(),
+  contentType: text("content_type").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("idea"),
+  publishDate: timestamp("publish_date"),
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+const allowedContentStatuses = z.enum(["idea", "draft", "in_review", "scheduled", "published"]);
+const allowedContentTypes = z.enum(["blog_post", "social_media", "video", "email", "infographic", "case_study"]);
+
+export const insertContentItemSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  contentType: allowedContentTypes,
+  description: z.string().optional(),
+  status: allowedContentStatuses.default("idea"),
+  publishDate: z.string().datetime().nullable().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+export const updateContentItemSchema = z.object({
+  title: z.string().min(1, "Title is required").optional(),
+  contentType: allowedContentTypes.optional(),
+  description: z.string().optional(),
+  status: allowedContentStatuses.optional(),
+  publishDate: z.string().datetime().nullable().optional(),
+  tags: z.array(z.string()).optional(),
+}).partial();
+
+export type InsertContentItem = z.infer<typeof insertContentItemSchema>;
+export type UpdateContentItem = z.infer<typeof updateContentItemSchema>;
+export type ContentItem = typeof contentItems.$inferSelect;
