@@ -22,7 +22,116 @@ export interface ContentOutline {
 export async function generateContentOutline(
   topic: string
 ): Promise<ContentOutline> {
-  const prompt = `You are an expert SEO content strategist. Generate a comprehensive, SEO-optimized content outline for the topic: "${topic}"
+  const ENABLE_REAL_AI = process.env.ENABLE_REAL_AI === "true";
+  const AI_MODE = process.env.AI_MODE || "mock";
+
+  if (!ENABLE_REAL_AI || AI_MODE === "mock") {
+    return {
+      title: `Complete Guide to ${topic}`,
+      metaDescription: `Discover everything you need to know about ${topic}. This comprehensive guide covers best practices, tips, and actionable strategies.`,
+      targetWordCount: 2000,
+      sections: [
+        {
+          heading: `What is ${topic}?`,
+          level: 'h2',
+          keyPoints: [
+            'Definition and overview',
+            'Why it matters in today\'s landscape',
+            'Common misconceptions',
+          ],
+          wordCount: 250,
+        },
+        {
+          heading: 'Key Components',
+          level: 'h3',
+          keyPoints: [
+            'Essential elements to understand',
+            'Core principles',
+          ],
+          wordCount: 200,
+        },
+        {
+          heading: `Benefits of ${topic}`,
+          level: 'h2',
+          keyPoints: [
+            'Immediate advantages',
+            'Long-term impact',
+            'ROI considerations',
+            'Real-world success stories',
+          ],
+          wordCount: 300,
+        },
+        {
+          heading: `How to Get Started with ${topic}`,
+          level: 'h2',
+          keyPoints: [
+            'Step-by-step implementation guide',
+            'Tools and resources needed',
+            'Setting realistic expectations',
+          ],
+          wordCount: 350,
+        },
+        {
+          heading: 'Best Practices',
+          level: 'h3',
+          keyPoints: [
+            'Industry-proven strategies',
+            'Tips from experts',
+          ],
+          wordCount: 250,
+        },
+        {
+          heading: 'Common Mistakes to Avoid',
+          level: 'h3',
+          keyPoints: [
+            'Pitfalls beginners face',
+            'How to troubleshoot issues',
+          ],
+          wordCount: 200,
+        },
+        {
+          heading: `Advanced ${topic} Strategies`,
+          level: 'h2',
+          keyPoints: [
+            'Optimization techniques',
+            'Scaling considerations',
+            'Expert-level tactics',
+          ],
+          wordCount: 300,
+        },
+        {
+          heading: 'Conclusion and Next Steps',
+          level: 'h2',
+          keyPoints: [
+            'Summary of key takeaways',
+            'Recommended action plan',
+            'Additional resources',
+          ],
+          wordCount: 150,
+        },
+      ],
+      seoTips: [
+        'Include your target keyword naturally in the first 100 words',
+        'Use semantic keywords and LSI variations throughout',
+        'Add internal links to related content on your site',
+        'Optimize images with descriptive alt text',
+        'Include a clear call-to-action in the conclusion',
+        'Structure content with proper heading hierarchy (H1 > H2 > H3)',
+      ],
+      relatedQuestions: [
+        `What are the benefits of ${topic}?`,
+        `How do I get started with ${topic}?`,
+        `What are common ${topic} mistakes?`,
+        `Is ${topic} worth the investment?`,
+        `How long does it take to see results from ${topic}?`,
+        `What tools are needed for ${topic}?`,
+      ],
+    };
+  }
+
+  const systemPrompt = `You are an expert SEO content strategist. Generate comprehensive, SEO-optimized content outlines.`;
+  
+  const userPrompt = `Generate a comprehensive, SEO-optimized content outline for the topic: "${topic}"
 
 Create a detailed outline that includes:
 1. An engaging main title (H1)
@@ -71,10 +180,10 @@ Important:
 - SEO tips should be specific to the topic
 - Questions should be natural, search-intent focused`;
 
-  const response = await callAI(prompt, {
+  const response = await callAI(systemPrompt, userPrompt, {
     temperature: 0.7,
-    model: 'gpt-4o',
-    responseFormat: 'json'
+    maxTokens: 3000,
+    jsonMode: true,
   });
 
   let outline: ContentOutline;
