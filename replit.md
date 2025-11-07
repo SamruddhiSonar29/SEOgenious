@@ -21,6 +21,7 @@ PostgreSQL, specifically Neon serverless PostgreSQL via Drizzle ORM, is used for
 Form-based authentication uses email/password with `bcryptjs` hashing. Session-based authentication uses HTTP-only, SameSite 'lax' cookies, with session data stored in-memory (prepared for PostgreSQL persistence). Authorization relies on `req.session.userId` for protected API endpoints and a `ProtectedRoute` component on the frontend.
 
 ### Features
+*   **Keyword Research**: AI-powered keyword discovery tool that generates 50+ keyword ideas from a seed keyword, including related keywords, long-tail variations, questions, and competitor keywords. Features comprehensive metrics (search volume, competition, difficulty, CPC), intent classification, trend indicators, sortable columns, filtering by intent/volume/difficulty, and CSV/PDF export capabilities.
 *   **SEO Health Audit**: Provides comprehensive technical SEO analysis with automated scoring, 15+ technical checks, AI-powered recommendations, and asynchronous execution.
 *   **Rank Tracking Dashboard**: Monitors keyword rankings over time with historical trend visualization, snapshot management, and manual rank checks.
 *   **AI PDF Report Generator**: Exports professional PDF reports for SEO audits and rank tracking data, featuring AI-powered summaries, branded layouts, and two report types (SEO Audit and Rank Tracking).
