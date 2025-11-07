@@ -315,3 +315,90 @@ export const keywordWithRankDataSchema = z.object({
 export type AddKeywordRequest = z.infer<typeof addKeywordRequestSchema>;
 export type TrackRankRequest = z.infer<typeof trackRankRequestSchema>;
 export type KeywordWithRankData = z.infer<typeof keywordWithRankDataSchema>;
+
+// Backlink Analysis Tables
+export const backlinkProfiles = pgTable("backlink_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  targetUrl: text("target_url").notNull(),
+  totalBacklinks: integer("total_backlinks").notNull().default(0),
+  domainAuthority: integer("domain_authority").notNull().default(0),
+  spamScore: integer("spam_score").notNull().default(0),
+  lastCheckedAt: timestamp("last_checked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBacklinkProfileSchema = createInsertSchema(backlinkProfiles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertBacklinkProfile = z.infer<typeof insertBacklinkProfileSchema>;
+export type BacklinkProfile = typeof backlinkProfiles.$inferSelect;
+
+export const backlinkSnapshots = pgTable("backlink_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  profileId: varchar("profile_id").notNull(),
+  sourceUrl: text("source_url").notNull(),
+  sourceDomain: text("source_domain").notNull(),
+  anchorText: text("anchor_text").notNull(),
+  linkType: text("link_type").notNull(),
+  domainAuthority: integer("domain_authority").notNull().default(0),
+  pageAuthority: integer("page_authority").notNull().default(0),
+  spamScore: integer("spam_score").notNull().default(0),
+  isDoFollow: boolean("is_do_follow").notNull().default(true),
+  isToxic: boolean("is_toxic").notNull().default(false),
+  firstSeenAt: timestamp("first_seen_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  status: text("status").notNull().default("active"),
+});
+
+export const insertBacklinkSnapshotSchema = createInsertSchema(backlinkSnapshots).omit({
+  id: true,
+  firstSeenAt: true,
+  lastSeenAt: true,
+});
+
+export type InsertBacklinkSnapshot = z.infer<typeof insertBacklinkSnapshotSchema>;
+export type BacklinkSnapshot = typeof backlinkSnapshots.$inferSelect;
+
+// Backlink Analysis API Schemas
+export const analyzeBacklinksRequestSchema = z.object({
+  targetUrl: z.string().url("Must be a valid URL"),
+});
+
+export const backlinkDataSchema = z.object({
+  id: z.string(),
+  sourceUrl: z.string(),
+  sourceDomain: z.string(),
+  anchorText: z.string(),
+  linkType: z.string(),
+  domainAuthority: z.number(),
+  pageAuthority: z.number(),
+  spamScore: z.number(),
+  isDoFollow: z.boolean(),
+  isToxic: z.boolean(),
+  status: z.string(),
+  firstSeenAt: z.string(),
+  lastSeenAt: z.string(),
+});
+
+export const backlinkProfileWithDataSchema = z.object({
+  id: z.string(),
+  targetUrl: z.string(),
+  totalBacklinks: z.number(),
+  domainAuthority: z.number(),
+  spamScore: z.number(),
+  lastCheckedAt: z.string().nullable(),
+  createdAt: z.string(),
+  backlinks: z.array(backlinkDataSchema),
+  anchorTextDistribution: z.record(z.number()),
+  toxicCount: z.number(),
+  doFollowCount: z.number(),
+  newBacklinksCount: z.number(),
+  lostBacklinksCount: z.number(),
+});
+
+export type AnalyzeBacklinksRequest = z.infer<typeof analyzeBacklinksRequestSchema>;
+export type BacklinkData = z.infer<typeof backlinkDataSchema>;
+export type BacklinkProfileWithData = z.infer<typeof backlinkProfileWithDataSchema>;

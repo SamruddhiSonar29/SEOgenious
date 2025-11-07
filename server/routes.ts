@@ -22,6 +22,8 @@ import * as aiWrapper from "./services/aiWrapper";
 import { seoAuditor } from "./services/seoAuditor";
 import { rankTrackerService } from "./services/rankTracker";
 import { pdfGeneratorService } from "./services/pdfGenerator";
+import { backlinkAnalyzerService } from "./services/backlinkAnalyzer";
+import { analyzeBacklinksRequestSchema } from "@shared/schema";
 
 // Initialize n8n webhooks (null if not configured)
 const n8nWebhooks = initN8nWebhooks();
@@ -953,6 +955,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete keyword' });
+    }
+  });
+
+  app.post('/api/backlinks/analyze', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const validated = analyzeBacklinksRequestSchema.parse(req.body);
+      
+      const result = await backlinkAnalyzerService.analyzeBacklinks(validated.targetUrl, userId);
+      
+      await storage.createActivity({
+        userId,
+        type: 'backlink_analysis',
+        description: `Analyzed backlinks for ${validated.targetUrl}`,
+        metadata: { 
+          profileId: result.profileId,
+          totalBacklinks: result.totalBacklinks,
+          toxicCount: result.toxicCount,
+        },
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('Backlink analysis error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+      }
+      res.status(500).json({ error: 'Failed to analyze backlinks' });
+    }
+  });
+
+  app.get('/api/backlinks', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const profiles = await storage.getBacklinkProfiles(userId);
+      
+      res.json({ profiles });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch backlink profiles' });
+    }
+  });
+
+  app.get('/api/backlinks/:id', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const profileData = await backlinkAnalyzerService.getProfileWithData(id, userId);
+      if (!profileData) {
+        return res.status(404).json({ error: 'Backlink profile not found or not authorized' });
+      }
+
+      res.json(profileData);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch backlink profile' });
+    }
+  });
+
+  app.post('/api/backlinks/refresh/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const result = await backlinkAnalyzerService.refreshBacklinkAnalysis(id, userId);
+      
+      await storage.createActivity({
+        userId,
+        type: 'backlink_refresh',
+        description: `Refreshed backlink analysis for ${result.targetUrl}`,
+        metadata: { 
+          profileId: id,
+          newBacklinks: result.newBacklinks,
+          lostBacklinks: result.lostBacklinks,
+        },
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('Backlink refresh error:', error);
+      if (error.message === 'Backlink profile not found') {
+        return res.status(404).json({ error: 'Backlink profile not found or not authorized' });
+      }
+      res.status(500).json({ error: 'Failed to refresh backlink analysis' });
+    }
+  });
+
+  app.delete('/api/backlinks/:id', checkCSRF, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session!.userId!;
+      const { id } = req.params;
+      
+      const deleted = await storage.deleteBacklinkProfile(id, userId);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Backlink profile not found or not authorized' });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete backlink profile' });
     }
   });
 

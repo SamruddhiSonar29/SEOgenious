@@ -377,6 +377,93 @@ Be concise and practical. Focus on SEO best practices, keyword optimization, con
 }
 
 /**
+ * Backlink Risk Assessment
+ * Analyze backlink profile and provide risk assessment
+ */
+export async function backlinkRiskAssessment(params: {
+  totalBacklinks: number;
+  toxicCount: number;
+  spamScore: number;
+  domainAuthority: number;
+}): Promise<{ assessment: string; recommendations: string[] }> {
+  const { totalBacklinks, toxicCount, spamScore, domainAuthority } = params;
+
+  // Check if AI is enabled
+  if (!ENABLE_REAL_AI || AI_MODE === "mock") {
+    const toxicPercentage = totalBacklinks > 0 ? (toxicCount / totalBacklinks) * 100 : 0;
+    
+    let assessment = "Your backlink profile shows ";
+    if (toxicPercentage > 30) {
+      assessment += "HIGH RISK: A significant portion of your backlinks are toxic or spammy. This could harm your SEO rankings.";
+    } else if (toxicPercentage > 15) {
+      assessment += "MEDIUM RISK: Some toxic backlinks detected. Monitor and disavow if necessary.";
+    } else {
+      assessment += "LOW RISK: Most of your backlinks appear to be from quality sources.";
+    }
+
+    return {
+      assessment,
+      recommendations: [
+        "Review and disavow toxic backlinks using Google Search Console",
+        "Focus on acquiring high-quality backlinks from authoritative domains",
+        "Monitor your backlink profile regularly for new toxic links",
+      ],
+    };
+  }
+
+  const systemPrompt = "You are an SEO expert analyzing backlink profiles. Provide concise risk assessment and actionable recommendations.";
+  
+  const userPrompt = `
+Analyze this backlink profile:
+- Total Backlinks: ${totalBacklinks}
+- Toxic Backlinks: ${toxicCount}
+- Average Spam Score: ${spamScore}
+- Average Domain Authority: ${domainAuthority}
+
+Provide:
+1. Risk assessment (2-3 sentences)
+2. Top 3-5 actionable recommendations
+
+Return as JSON: { "assessment": string, "recommendations": string[] }
+`;
+
+  try {
+    const response = await callAI(systemPrompt, userPrompt, {
+      jsonMode: true,
+      maxTokens: 800,
+    });
+
+    const parsed = JSON.parse(response);
+    return {
+      assessment: parsed.assessment || "Unable to assess risk at this time.",
+      recommendations: parsed.recommendations || [],
+    };
+  } catch (error) {
+    console.error("Backlink risk assessment AI error:", error);
+    
+    // Fallback to mock response
+    const toxicPercentage = totalBacklinks > 0 ? (toxicCount / totalBacklinks) * 100 : 0;
+    
+    let assessment = "Your backlink profile shows ";
+    if (toxicPercentage > 30) {
+      assessment += "HIGH RISK: A significant portion of your backlinks are toxic or spammy.";
+    } else if (toxicPercentage > 15) {
+      assessment += "MEDIUM RISK: Some toxic backlinks detected.";
+    } else {
+      assessment += "LOW RISK: Most backlinks appear to be from quality sources.";
+    }
+
+    return {
+      assessment,
+      recommendations: [
+        "Review toxic backlinks in Google Search Console",
+        "Focus on quality link building from authoritative sources",
+      ],
+    };
+  }
+}
+
+/**
  * Get AI service status
  */
 export function getAIStatus(): {

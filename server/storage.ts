@@ -16,13 +16,19 @@ import {
   type InsertKeyword,
   type RankSnapshot,
   type InsertRankSnapshot,
+  type BacklinkProfile,
+  type InsertBacklinkProfile,
+  type BacklinkSnapshot,
+  type InsertBacklinkSnapshot,
   users,
   chatMessages,
   activities,
   savedItems,
   audits,
   keywords,
-  rankSnapshots
+  rankSnapshots,
+  backlinkProfiles,
+  backlinkSnapshots
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -63,6 +69,23 @@ export interface IStorage {
   deleteKeyword(id: string, userId: string): Promise<boolean>;
   createRankSnapshot(snapshot: InsertRankSnapshot): Promise<RankSnapshot>;
   getRankSnapshots(keywordId: string, limit?: number): Promise<RankSnapshot[]>;
+  createBacklinkProfile(profile: InsertBacklinkProfile): Promise<BacklinkProfile>;
+  getBacklinkProfile(id: string, userId: string): Promise<BacklinkProfile | undefined>;
+  getBacklinkProfiles(userId: string): Promise<BacklinkProfile[]>;
+  updateBacklinkProfile(id: string, updates: {
+    totalBacklinks?: number;
+    domainAuthority?: number;
+    spamScore?: number;
+    lastCheckedAt?: Date;
+  }): Promise<BacklinkProfile | undefined>;
+  deleteBacklinkProfile(id: string, userId: string): Promise<boolean>;
+  createBacklinkSnapshot(snapshot: InsertBacklinkSnapshot): Promise<BacklinkSnapshot>;
+  getBacklinkSnapshots(profileId: string, limit?: number): Promise<BacklinkSnapshot[]>;
+  updateBacklinkSnapshot(id: string, updates: {
+    status?: string;
+    isToxic?: boolean;
+    lastSeenAt?: Date;
+  }): Promise<BacklinkSnapshot | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -73,6 +96,8 @@ export class MemStorage implements IStorage {
   private audits: Map<string, Audit>;
   private keywords: Map<string, Keyword>;
   private rankSnapshots: Map<string, RankSnapshot>;
+  private backlinkProfiles: Map<string, BacklinkProfile>;
+  private backlinkSnapshots: Map<string, BacklinkSnapshot>;
 
   constructor() {
     this.users = new Map();
@@ -82,6 +107,8 @@ export class MemStorage implements IStorage {
     this.audits = new Map();
     this.keywords = new Map();
     this.rankSnapshots = new Map();
+    this.backlinkProfiles = new Map();
+    this.backlinkSnapshots = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -303,6 +330,82 @@ export class MemStorage implements IStorage {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, limit);
   }
+
+  async createBacklinkProfile(insertProfile: InsertBacklinkProfile): Promise<BacklinkProfile> {
+    const id = randomUUID();
+    const profile: BacklinkProfile = {
+      id,
+      ...insertProfile,
+      lastCheckedAt: insertProfile.lastCheckedAt ?? null,
+      createdAt: new Date(),
+    };
+    this.backlinkProfiles.set(id, profile);
+    return profile;
+  }
+
+  async getBacklinkProfile(id: string, userId: string): Promise<BacklinkProfile | undefined> {
+    const profile = this.backlinkProfiles.get(id);
+    if (!profile || profile.userId !== userId) return undefined;
+    return profile;
+  }
+
+  async getBacklinkProfiles(userId: string): Promise<BacklinkProfile[]> {
+    return Array.from(this.backlinkProfiles.values())
+      .filter((profile) => profile.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async updateBacklinkProfile(id: string, updates: {
+    totalBacklinks?: number;
+    domainAuthority?: number;
+    spamScore?: number;
+    lastCheckedAt?: Date;
+  }): Promise<BacklinkProfile | undefined> {
+    const profile = this.backlinkProfiles.get(id);
+    if (!profile) return undefined;
+    
+    const updatedProfile = { ...profile, ...updates };
+    this.backlinkProfiles.set(id, updatedProfile);
+    return updatedProfile;
+  }
+
+  async deleteBacklinkProfile(id: string, userId: string): Promise<boolean> {
+    const profile = this.backlinkProfiles.get(id);
+    if (!profile || profile.userId !== userId) return false;
+    return this.backlinkProfiles.delete(id);
+  }
+
+  async createBacklinkSnapshot(insertSnapshot: InsertBacklinkSnapshot): Promise<BacklinkSnapshot> {
+    const id = randomUUID();
+    const snapshot: BacklinkSnapshot = {
+      id,
+      ...insertSnapshot,
+      firstSeenAt: new Date(),
+      lastSeenAt: new Date(),
+    };
+    this.backlinkSnapshots.set(id, snapshot);
+    return snapshot;
+  }
+
+  async getBacklinkSnapshots(profileId: string, limit: number = 100): Promise<BacklinkSnapshot[]> {
+    return Array.from(this.backlinkSnapshots.values())
+      .filter((snapshot) => snapshot.profileId === profileId)
+      .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
+      .slice(0, limit);
+  }
+
+  async updateBacklinkSnapshot(id: string, updates: {
+    status?: string;
+    isToxic?: boolean;
+    lastSeenAt?: Date;
+  }): Promise<BacklinkSnapshot | undefined> {
+    const snapshot = this.backlinkSnapshots.get(id);
+    if (!snapshot) return undefined;
+    
+    const updatedSnapshot = { ...snapshot, ...updates };
+    this.backlinkSnapshots.set(id, updatedSnapshot);
+    return updatedSnapshot;
+  }
 }
 
 // PostgreSQL database storage implementation
@@ -518,6 +621,82 @@ export class DatabaseStorage implements IStorage {
       .where(eq(rankSnapshots.keywordId, keywordId))
       .orderBy(desc(rankSnapshots.createdAt))
       .limit(limit);
+  }
+
+  async createBacklinkProfile(insertProfile: InsertBacklinkProfile): Promise<BacklinkProfile> {
+    const [profile] = await db
+      .insert(backlinkProfiles)
+      .values(insertProfile)
+      .returning();
+    return profile;
+  }
+
+  async getBacklinkProfile(id: string, userId: string): Promise<BacklinkProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(backlinkProfiles)
+      .where(and(eq(backlinkProfiles.id, id), eq(backlinkProfiles.userId, userId)));
+    return profile || undefined;
+  }
+
+  async getBacklinkProfiles(userId: string): Promise<BacklinkProfile[]> {
+    return await db
+      .select()
+      .from(backlinkProfiles)
+      .where(eq(backlinkProfiles.userId, userId))
+      .orderBy(desc(backlinkProfiles.createdAt));
+  }
+
+  async updateBacklinkProfile(id: string, updates: {
+    totalBacklinks?: number;
+    domainAuthority?: number;
+    spamScore?: number;
+    lastCheckedAt?: Date;
+  }): Promise<BacklinkProfile | undefined> {
+    const [profile] = await db
+      .update(backlinkProfiles)
+      .set(updates)
+      .where(eq(backlinkProfiles.id, id))
+      .returning();
+    return profile || undefined;
+  }
+
+  async deleteBacklinkProfile(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(backlinkProfiles)
+      .where(and(eq(backlinkProfiles.id, id), eq(backlinkProfiles.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async createBacklinkSnapshot(insertSnapshot: InsertBacklinkSnapshot): Promise<BacklinkSnapshot> {
+    const [snapshot] = await db
+      .insert(backlinkSnapshots)
+      .values(insertSnapshot)
+      .returning();
+    return snapshot;
+  }
+
+  async getBacklinkSnapshots(profileId: string, limit: number = 100): Promise<BacklinkSnapshot[]> {
+    return await db
+      .select()
+      .from(backlinkSnapshots)
+      .where(eq(backlinkSnapshots.profileId, profileId))
+      .orderBy(desc(backlinkSnapshots.lastSeenAt))
+      .limit(limit);
+  }
+
+  async updateBacklinkSnapshot(id: string, updates: {
+    status?: string;
+    isToxic?: boolean;
+    lastSeenAt?: Date;
+  }): Promise<BacklinkSnapshot | undefined> {
+    const [snapshot] = await db
+      .update(backlinkSnapshots)
+      .set(updates)
+      .where(eq(backlinkSnapshots.id, id))
+      .returning();
+    return snapshot || undefined;
   }
 }
 
